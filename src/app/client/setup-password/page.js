@@ -1,0 +1,33 @@
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import PasswordForm from "./PasswordForm";
+import SetupNotice from "@/components/SetupNotice";
+import { getCurrentProfile } from "@/lib/auth";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+
+export const dynamic = "force-dynamic";
+
+export default async function SetupPasswordPage() {
+  if (!isSupabaseConfigured()) return <SetupNotice />;
+
+  const profile = await getCurrentProfile();
+  if (!profile) redirect("/login");
+  if (profile.role !== "client") redirect("/admin/dashboard");
+
+  return (
+    <main className="setup-screen">
+      <section className="setup-card">
+        <Link className="brand" href="/client/portal">
+          <span className="brand-mark">m.</span>
+          <span>moonkalp<span className="brand-muted"> / studio</span></span>
+        </Link>
+        <div className="password-setup-copy">
+          <span className="eyebrow">CLIENT PORTAL / FIRST VISIT</span>
+          <h1>Set your password</h1>
+          <p>Choose a password for future sign-ins, then continue to your client portal.</p>
+        </div>
+        <PasswordForm />
+      </section>
+    </main>
+  );
+}
