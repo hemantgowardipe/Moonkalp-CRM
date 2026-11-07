@@ -19,6 +19,7 @@ A Next.js App Router CRM starter for agency teams and their clients. It uses Sup
    - `20261101203000_client_portal_invites.sql`: invite-only client onboarding.
    - `20261107120000_fix_invite_profile_link.sql`: links invited users to their client record.
    - `20261107140000_portal_access_controls.sql`: portal status, disable/enable access, and the portal activity log.
+   - `20261108090000_settings_and_audit.sql`: organization settings, per-user appearance preferences, and the append-only audit log (written by database triggers).
 
    `20261101200000_client_self_signup.sql` is historical (public sign-up was removed); the invite migrations replace its trigger. When deploying, **run new migrations before deploying the code that uses them**.
 
@@ -60,6 +61,19 @@ Each client's drawer has a **Portal access** panel:
 - Every invite, resend, disable, and enable is recorded in `client_portal_events` and shown in the panel.
 
 **Forgot password** (`/forgot-password`) works for clients and staff. It never reveals whether an email has an account. The password screens only accept sessions that came from an emailed link in the last hour, so a signed-in but unattended browser cannot be used to change the password. After a reset, the user's other sessions are signed out.
+
+## Settings
+
+`/settings` is available to everyone; sections depend on role.
+
+| Section | Who | What |
+|---|---|---|
+| Profile | Everyone | Display name (changed via the `update_my_profile` function, which cannot touch roles) |
+| Appearance | Everyone | Light / Dark / System theme and Comfortable / Compact density; saved per user and applied on first paint |
+| Security | Everyone | Change password (requires the current one; signs out other devices), sign out other devices |
+| Organization | Admin edits, team views | Agency name, support email/phone, website, payment terms (default invoice due date), revision turnaround target (shown to clients) |
+| Team | Admin, team | Staff accounts and their access state |
+| Audit log | Admin | Every insert/update/delete on clients, services, deliverables, payments, profiles, and organization settings, with who and when. Append-only: no role, including the service role, can edit or delete entries. |
 
 ## Current functionality
 

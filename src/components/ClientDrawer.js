@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { formatCurrency } from "@/lib/formatCurrency.mjs";
 import ClientPortalAccess from "@/components/ClientPortalAccess";
+import Icon from "@/components/Icon";
 import {
   AddDeliverableForm,
   AddPaymentForm,
@@ -34,7 +35,7 @@ function formatDate(value) {
     : "Not scheduled";
 }
 
-export default function ClientDrawer({ client, onClose }) {
+export default function ClientDrawer({ client, onClose, paymentTermsDays }) {
   const [activeTab, setActiveTab] = useState("Overview");
   const services = client.client_services ?? [];
   const deliverables = services.flatMap((service) =>
@@ -55,7 +56,13 @@ export default function ClientDrawer({ client, onClose }) {
       if (event.key === "Escape") onClose();
     }
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    // Keep the page behind the drawer from scrolling (matters on phones).
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
   }, [onClose]);
 
   return (
@@ -69,8 +76,8 @@ export default function ClientDrawer({ client, onClose }) {
       >
         <div className="drawer-topline">
           <span className="eyebrow">CLIENT RECORD / {client.id.slice(0, 8).toUpperCase()}</span>
-          <button aria-label="Close client details" className="icon-button" onClick={onClose}>
-            ×
+          <button aria-label="Close client details" className="icon-button" onClick={onClose} type="button">
+            <Icon name="close" />
           </button>
         </div>
         <div className="drawer-heading">
@@ -157,6 +164,9 @@ export default function ClientDrawer({ client, onClose }) {
                     <div className="drawer-item-main">
                       <strong>{item.title}</strong>
                       <span>{item.category} · {item.serviceType} · Due {formatDate(item.due_date)}</span>
+                      {item.latestReview?.note ? (
+                        <span className="drawer-review-note">Client note: “{item.latestReview.note}”</span>
+                      ) : null}
                     </div>
                     {item.latestReview ? <Status>{item.latestReview.action}</Status> : null}
                     <DeliverableStatusSelect deliverable={item} />
@@ -189,7 +199,7 @@ export default function ClientDrawer({ client, onClose }) {
                 )}
               </EditableRecord>
             )) : <p className="empty-note">No payment records have been added.</p>}
-            <AddPaymentForm clientId={client.id} />
+            <AddPaymentForm clientId={client.id} paymentTermsDays={paymentTermsDays} />
           </div>
         ) : null}
       </aside>

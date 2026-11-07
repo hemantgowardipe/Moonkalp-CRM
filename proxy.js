@@ -8,7 +8,8 @@ export async function proxy(request) {
     request.nextUrl.pathname.startsWith("/admin") ||
     request.nextUrl.pathname.startsWith("/client/portal") ||
     request.nextUrl.pathname.startsWith("/client/setup-password") ||
-    request.nextUrl.pathname.startsWith("/reset-password");
+    request.nextUrl.pathname.startsWith("/reset-password") ||
+    request.nextUrl.pathname.startsWith("/settings");
 
   if (!url || !key || !isProtectedRoute) {
     return NextResponse.next({ request });
@@ -47,5 +48,5 @@ export async function proxy(request) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/client/portal/:path*", "/client/setup-password", "/reset-password"],
+  matcher: ["/admin/:path*", "/client/portal/:path*", "/client/setup-password", "/reset-password", "/settings/:path*"],
 };

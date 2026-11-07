@@ -25,6 +25,7 @@ import {
   SERVICE_TYPES,
   todayIsoDate,
 } from "@/lib/crmRecords.mjs";
+import { defaultDueDate } from "@/lib/settingsRules.mjs";
 
 const initialState = { error: "", success: false };
 
@@ -270,7 +271,7 @@ export function EditDeliverableForm({ services, deliverable, onDone }) {
   return <DeliverableForm deliverable={deliverable} onDone={onDone} services={services} />;
 }
 
-function PaymentForm({ clientId, payment, onDone }) {
+function PaymentForm({ clientId, payment, onDone, paymentTermsDays = 15 }) {
   const [state, action, pending] = useSavingAction(payment ? updatePayment : createPayment, onDone);
   const [status, setStatus] = useState(payment?.payment_status ?? "Pending");
 
@@ -291,7 +292,7 @@ function PaymentForm({ clientId, payment, onDone }) {
         </div>
         <div className="drawer-form-row">
           <label>Due date
-            <input defaultValue={payment?.due_date ?? ""} name="due_date" required type="date" />
+            <input defaultValue={payment?.due_date ?? defaultDueDate(paymentTermsDays)} name="due_date" required type="date" />
           </label>
           {status === "Paid" ? (
             <label>Paid date
@@ -309,10 +310,10 @@ function PaymentForm({ clientId, payment, onDone }) {
   );
 }
 
-export function AddPaymentForm({ clientId }) {
+export function AddPaymentForm({ clientId, paymentTermsDays }) {
   return (
     <AddRecordPanel label="Add payment">
-      {(close) => <PaymentForm clientId={clientId} onDone={close} />}
+      {(close) => <PaymentForm clientId={clientId} onDone={close} paymentTermsDays={paymentTermsDays} />}
     </AddRecordPanel>
   );
 }

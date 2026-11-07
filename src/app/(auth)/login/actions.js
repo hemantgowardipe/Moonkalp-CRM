@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { getUserPreferences, writeAppearanceCookies } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
 
 export async function signIn(_previousState, formData) {
@@ -47,6 +48,9 @@ export async function signIn(_previousState, formData) {
     await supabase.auth.signOut();
     return { error: "Your portal access has been disabled. Contact your agency if you think this is a mistake." };
   }
+
+  // Bring the user's saved appearance to this device.
+  await writeAppearanceCookies(await getUserPreferences(supabase, data.user.id));
 
   redirect(profile.role === "client" ? "/client/portal" : "/admin/dashboard");
 }

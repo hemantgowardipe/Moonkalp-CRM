@@ -1,8 +1,11 @@
 import SetupNotice from "@/components/SetupNotice";
 import WorkspaceShell from "@/components/WorkspaceShell";
 import ClientDirectory from "@/components/ClientDirectory";
+import Icon from "@/components/Icon";
 import NewClientForm from "@/components/NewClientForm";
 import { requireRole } from "@/lib/auth";
+import { PIPELINE_STATUSES } from "@/lib/crmRecords.mjs";
+import { getCurrentOrganizationSettings } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import {
@@ -47,66 +50,90 @@ export default async function AdminDashboardPage() {
   }));
   const metrics = getAgencyDashboardMetrics(allClients);
 
+  const organization = await getCurrentOrganizationSettings();
+  const pipelineCounts = PIPELINE_STATUSES.map((status) => ({
+    status,
+    count: metrics.deliverables.filter((item) => item.pipeline_status === status).length,
+  }));
+  const hour = Number(new Intl.DateTimeFormat("en-IN", { hour: "numeric", hourCycle: "h23", timeZone: "Asia/Kolkata" }).format(new Date()));
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+
   return (
-    <WorkspaceShell activeSection="Overview" profile={profile}>
-      <div className="page-content">
+    <WorkspaceShell active="overview" profile={profile} title="Overview">
+      <div className="page">
         <header className="page-header">
           <div>
-            <div className="breadcrumb">WORKSPACE <span>/</span> OVERVIEW</div>
-            <h1>Good morning, {profile.full_name.split(" ")[0]}<span className="heading-period">.</span></h1>
-            <p className="page-subtitle">Here&apos;s the pulse of your agency today.</p>
+            <p className="eyebrow">{new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", timeZone: "Asia/Kolkata" })}</p>
+            <h1>{greeting}, {profile.full_name.split(" ")[0]}</h1>
+            <p className="page-subtitle">Here&apos;s how your agency is doing today.</p>
           </div>
           <div className="header-actions">
-            <span className="date-stamp">{new Date().toLocaleDateString("en-IN", { weekday: "short", day: "2-digit", month: "short", year: "numeric" }).toUpperCase()}</span>
             <NewClientForm />
           </div>
         </header>
 
         <section aria-label="Agency performance" className="metric-grid">
           <article className="metric-card">
-            <div className="metric-top"><span>MONTHLY RECURRING REVENUE</span><span className="metric-spark">↗</span></div>
+            <span className="metric-icon"><Icon name="trend" /></span>
+            <span className="metric-label">Monthly recurring revenue</span>
             <strong className="metric-value">{formatAgencyDashboardCurrency(metrics.mrr)}</strong>
             <span className="metric-caption">From {metrics.activeServices.length} active service{metrics.activeServices.length === 1 ? "" : "s"}</span>
           </article>
           <article className="metric-card">
-            <div className="metric-top"><span>PENDING DUES</span><span className="metric-spark muted">◷</span></div>
+            <span className="metric-icon metric-icon-warning"><Icon name="clock" /></span>
+            <span className="metric-label">Pending dues</span>
             <strong className="metric-value">{formatAgencyDashboardCurrency(metrics.pendingDues)}</strong>
             <span className="metric-caption">{metrics.pendingInvoiceCount} invoice{metrics.pendingInvoiceCount === 1 ? "" : "s"} awaiting payment</span>
           </article>
           <article className="metric-card">
-            <div className="metric-top"><span>ACTIVE PROJECTS</span><span className="metric-spark">▦</span></div>
-            <strong className="metric-value">{metrics.activeServices.length.toString().padStart(2, "0")}</strong>
-            <span className="metric-caption">Across {metrics.activeClientCount} active clients</span>
+            <span className="metric-icon metric-icon-info"><Icon name="layers" /></span>
+            <span className="metric-label">Active services</span>
+            <strong className="metric-value">{metrics.activeServices.length}</strong>
+            <span className="metric-caption">Across {metrics.activeClientCount} active client{metrics.activeClientCount === 1 ? "" : "s"}</span>
           </article>
-          <article className="metric-card metric-card-dark">
-            <div className="metric-top"><span>CLIENTS IN YOUR CARE</span><span className="metric-spark">◉</span></div>
-            <strong className="metric-value">{metrics.clientCount.toString().padStart(2, "0")}</strong>
+          <article className="metric-card metric-card-accent">
+            <span className="metric-icon"><Icon name="users" /></span>
+            <span className="metric-label">Clients</span>
+            <strong className="metric-value">{metrics.clientCount}</strong>
             <span className="metric-caption">{metrics.activeClientCount} currently active</span>
           </article>
         </section>
 
-        <ClientDirectory clients={allClients} />
+        <ClientDirectory clients={allClients} paymentTermsDays={organization.payment_terms_days} />
 
-        <section className="content-panel work-panel" id="deliverables">
+        <section aria-labelledby="pipeline-heading" className="panel" id="deliverables">
           <div className="panel-heading">
             <div>
-              <div className="section-kicker">IN MOTION</div>
-              <h2>Deliverables pipeline <span className="count-chip">{metrics.deliverables.length}</span></h2>
+              <h2 id="pipeline-heading">Deliverables pipeline <span className="count-chip">{metrics.deliverables.length}</span></h2>
+              <p className="panel-subtitle">Upcoming work across all clients, soonest due first.</p>
             </div>
-            <a className="text-link" href="#clients">VIEW CLIENTS&nbsp; ↗</a>
+          </div>
+          <div className="stage-strip" role="list">
+            {pipelineCounts.map(({ status, count }) => (
+              <div className="stage-chip" key={status} role="listitem">
+                <span className={`stage-dot stage-${status.toLowerCase().replaceAll(" ", "-")}`} />
+                <span>{status}</span>
+                <strong>{count}</strong>
+              </div>
+            ))}
           </div>
           {metrics.deliverables.length ? (
-            <div className="pipeline-list">
-              {metrics.deliverables.slice(0, 6).map((item) => (
-                <div className="pipeline-row" key={item.id}>
-                  <span className="pipeline-dot" />
+            <ul className="pipeline-list">
+              {metrics.deliverables.slice(0, 8).map((item) => (
+                <li className="pipeline-row" key={item.id}>
                   <div className="pipeline-main"><strong>{item.title}</strong><span>{item.clientName} · {item.category}</span></div>
                   <Status>{item.pipeline_status}</Status>
-                  <span className="pipeline-date">{item.due_date ? new Date(`${item.due_date}T00:00:00`).toLocaleDateString("en-IN", { day: "2-digit", month: "short" }) : "—"}</span>
-                </div>
+                  <span className="pipeline-date">{item.due_date ? new Date(`${item.due_date}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "No date"}</span>
+                </li>
               ))}
+            </ul>
+          ) : (
+            <div className="empty-state">
+              <span className="empty-icon"><Icon name="layers" /></span>
+              <strong>No deliverables yet</strong>
+              <p>Open a client, add a service, then add deliverables to track them here.</p>
             </div>
-          ) : <p className="empty-note panel-empty">Deliverables added to client services will appear here.</p>}
+          )}
         </section>
       </div>
     </WorkspaceShell>

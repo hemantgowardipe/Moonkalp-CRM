@@ -3,6 +3,7 @@
 import { useActionState, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClientRecord } from "@/app/admin/dashboard/actions";
+import Icon from "@/components/Icon";
 
 const initialState = { error: "", success: false };
 
@@ -18,7 +19,7 @@ function ClientForm({ dialog, onCreated }) {
       <form action={action} className="modal-form">
         <div className="drawer-topline">
           <span className="eyebrow">CLIENT RECORD / NEW</span>
-          <button aria-label="Close dialog" className="icon-button" formNoValidate onClick={() => dialog.current?.close()} type="button">×</button>
+          <button aria-label="Close dialog" className="icon-button" formNoValidate onClick={() => dialog.current?.close()} type="button"><Icon name="close" /></button>
         </div>
         <h2>Add a client</h2>
         <p className="login-subtitle">Start with their contact details. You can add services and billing next.</p>
@@ -52,7 +53,7 @@ export default function NewClientForm() {
   return (
     <>
       <button className="button button-primary" onClick={() => dialog.current?.showModal()} type="button">
-        <span>＋</span> New client
+        <Icon name="plus" size={18} /> New client
       </button>
       <dialog className="client-modal" onClose={() => setFormKey((key) => key + 1)} ref={dialog}>
         <ClientForm dialog={dialog} key={formKey} onCreated={onCreated} />
