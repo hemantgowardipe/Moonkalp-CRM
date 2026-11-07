@@ -80,13 +80,13 @@ export default async function AdminDashboardPage() {
             <span className="metric-caption">From {metrics.activeServices.length} active service{metrics.activeServices.length === 1 ? "" : "s"}</span>
           </article>
           <article className="metric-card">
-            <span className="metric-icon metric-icon-warning"><Icon name="clock" /></span>
+            <span className="metric-icon"><Icon name="clock" /></span>
             <span className="metric-label">Pending dues</span>
             <strong className="metric-value">{formatAgencyDashboardCurrency(metrics.pendingDues)}</strong>
             <span className="metric-caption">{metrics.pendingInvoiceCount} invoice{metrics.pendingInvoiceCount === 1 ? "" : "s"} awaiting payment</span>
           </article>
           <article className="metric-card">
-            <span className="metric-icon metric-icon-info"><Icon name="layers" /></span>
+            <span className="metric-icon"><Icon name="layers" /></span>
             <span className="metric-label">Active services</span>
             <strong className="metric-value">{metrics.activeServices.length}</strong>
             <span className="metric-caption">Across {metrics.activeClientCount} active client{metrics.activeClientCount === 1 ? "" : "s"}</span>

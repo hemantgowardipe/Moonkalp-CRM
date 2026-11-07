@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import BrandLogo from "@/components/BrandLogo";
 import PasswordForm from "@/app/client/setup-password/PasswordForm";
 import SetupNotice from "@/components/SetupNotice";
 import { getCurrentProfile, hasRecentEmailLinkSession } from "@/lib/auth";
@@ -23,8 +24,7 @@ export default async function ResetPasswordPage() {
     <main className="setup-screen">
       <section className="setup-card">
         <Link className="brand" href="/login">
-          <span className="brand-mark">m.</span>
-          <span>moonkalp<span className="brand-muted"> / studio</span></span>
+          <BrandLogo height={40} priority />
         </Link>
         <div className="password-setup-copy">
           <span className="eyebrow">ACCOUNT / NEW PASSWORD</span>

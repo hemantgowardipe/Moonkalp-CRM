@@ -1,4 +1,5 @@
 import Link from "next/link";
+import BrandLogo from "@/components/BrandLogo";
 import Icon from "@/components/Icon";
 import SignOutButton from "@/components/SignOutButton";
 import { getCurrentOrganizationSettings } from "@/lib/settings";
@@ -38,12 +39,9 @@ export default async function WorkspaceShell({ children, active = "overview", pr
       <a className="skip-link" href="#main">Skip to content</a>
 
       <aside className="sidebar" aria-label="Sidebar">
-        <Link className="brand" href={home}>
-          <span className="brand-mark">{organization.agency_name.slice(0, 1).toUpperCase()}</span>
-          <span className="brand-text">
-            <strong>{organization.agency_name}</strong>
-            <span>{clientMode ? "Client portal" : "CRM workspace"}</span>
-          </span>
+        <Link aria-label={`${organization.agency_name} home`} className="brand" href={home}>
+          <BrandLogo height={40} priority />
+          <span className="brand-caption">{clientMode ? "Client portal" : "Workspace"}</span>
         </Link>
         <nav aria-label="Main navigation" className="sidebar-nav">
           {nav.map((item) => (
@@ -72,7 +70,7 @@ export default async function WorkspaceShell({ children, active = "overview", pr
 
       <header className="appbar">
         <Link aria-label={`${organization.agency_name} home`} className="brand brand-compact" href={home}>
-          <span className="brand-mark">{organization.agency_name.slice(0, 1).toUpperCase()}</span>
+          <BrandLogo height={30} />
         </Link>
         <span className="appbar-title">{title ?? organization.agency_name}</span>
         <Link aria-label="Account settings" className="avatar avatar-button" href="/settings">

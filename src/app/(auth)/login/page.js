@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import BrandLogo from "@/components/BrandLogo";
 import LoginForm from "./LoginForm";
 import SetupNotice from "@/components/SetupNotice";
 import { getCurrentProfile } from "@/lib/auth";
@@ -20,8 +21,7 @@ export default async function LoginPage({ searchParams }) {
     <main className="login-screen">
       <section className="login-aside">
         <Link className="brand brand-light" href="/">
-          <span className="brand-mark">m.</span>
-          <span>moonkalp<span className="brand-muted"> / studio</span></span>
+          <BrandLogo height={44} inverse priority />
         </Link>
         <div className="login-message">
           <span className="eyebrow eyebrow-light">THE CLIENT OPERATING SYSTEM</span>

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import BrandLogo from "@/components/BrandLogo";
 import PasswordForm from "./PasswordForm";
 import { setClientPassword } from "./actions";
 import SetupNotice from "@/components/SetupNotice";
@@ -21,8 +22,7 @@ export default async function SetupPasswordPage() {
     <main className="setup-screen">
       <section className="setup-card">
         <Link className="brand" href="/client/portal">
-          <span className="brand-mark">m.</span>
-          <span>moonkalp<span className="brand-muted"> / studio</span></span>
+          <BrandLogo height={40} priority />
         </Link>
         <div className="password-setup-copy">
           <span className="eyebrow">CLIENT PORTAL / FIRST VISIT</span>
