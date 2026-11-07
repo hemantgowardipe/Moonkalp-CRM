@@ -81,6 +81,11 @@ export default function ClientPortalAccess({ client }) {
   if (status === "invited") detail = `Last invited ${formatDateTime(access.invited_at) || "—"}. Links expire, so resend if the client can't find theirs.`;
   if (status === "active") {
     detail = access.last_sign_in_at ? `Last signed in ${formatDateTime(access.last_sign_in_at)}.` : "Password set; not signed in yet.";
+    // Disabling signed the client out everywhere, and emailed links work once,
+    // so tell staff how the client gets back in.
+    if (events[0]?.event === "access_enabled") {
+      detail += " Access was re-enabled: the client signs in at the login page with their existing password (old invitation emails won't work again).";
+    }
   }
   if (status === "disabled") detail = `Disabled ${formatDateTime(access.disabled_at)}. The client cannot sign in or see any data.`;
 

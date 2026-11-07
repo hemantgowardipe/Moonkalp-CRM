@@ -11,7 +11,12 @@ function getStatusMessage({ accessStatus, inviteStatus }) {
     return { kind: "error", text: "Your portal access has been disabled. Contact your agency if you think this is a mistake." };
   }
   if (inviteStatus === "expired") {
-    return { kind: "error", text: "This link is invalid or has expired. Request a new one, or ask your agency contact to resend your invitation." };
+    // Supabase reports used and expired links the same way, and every emailed
+    // link works only once, so cover both cases.
+    return {
+      kind: "error",
+      text: "This link has already been used or has expired. Each emailed link works only once. If you've already set your password, sign in below (or use “Forgot password?”). If you never finished setting up, ask your agency contact to resend your invitation.",
+    };
   }
   if (inviteStatus === "invalid") {
     return { kind: "error", text: "This link is incomplete. Request a new one, or ask your agency contact to resend your invitation." };
