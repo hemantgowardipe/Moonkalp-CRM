@@ -18,12 +18,18 @@ export async function signIn(_previousState, formData) {
   });
 
   if (error) {
+    if (error.code === "user_banned") {
+      return { error: "Your portal access has been disabled. Contact your agency if you think this is a mistake." };
+    }
+    if (error.status === 429) {
+      return { error: "Too many sign-in attempts. Wait a few minutes and try again." };
+    }
     return { error: "Email or password is incorrect." };
   }
 
   const { data: profile, error: profileError } = await supabase
     .from("users")
-    .select("role")
+    .select("role, access_disabled_at")
     .eq("auth_id", data.user.id)
     .maybeSingle();
 
@@ -35,6 +41,11 @@ export async function signIn(_previousState, formData) {
   if (!profile) {
     await supabase.auth.signOut();
     return { error: "Your login is not linked to a CRM profile. Contact your agency admin." };
+  }
+
+  if (profile.access_disabled_at) {
+    await supabase.auth.signOut();
+    return { error: "Your portal access has been disabled. Contact your agency if you think this is a mistake." };
   }
 
   redirect(profile.role === "client" ? "/client/portal" : "/admin/dashboard");

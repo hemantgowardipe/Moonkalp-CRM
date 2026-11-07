@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { getAuthLinkDestination } from "@/lib/portalAccess.mjs";
 import { createClient } from "@/lib/supabase/browser";
 
 export default function ConfirmInvitePage() {
@@ -20,7 +21,7 @@ export default function ConfirmInvitePage() {
     createClient()
       .auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
       .then(({ error }) => {
-        router.replace(error ? "/login?invite=expired" : "/client/setup-password");
+        router.replace(error ? "/login?invite=expired" : getAuthLinkDestination(params.get("type")));
       });
   }, [router]);
 
@@ -28,8 +29,8 @@ export default function ConfirmInvitePage() {
     <main className="setup-screen">
       <section className="setup-card">
         <div className="password-setup-copy">
-          <span className="eyebrow">CLIENT PORTAL / INVITATION</span>
-          <h1>Confirming your invitation...</h1>
+          <span className="eyebrow">MOONKALP CRM / SECURE LINK</span>
+          <h1>Confirming your link...</h1>
         </div>
       </section>
     </main>

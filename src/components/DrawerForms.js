@@ -40,7 +40,7 @@ function useSavingAction(serverAction, onSaved) {
 
   useEffect(() => {
     if (!state.success) return;
-    onSavedRef.current?.();
+    onSavedRef.current?.(state);
     router.refresh();
   }, [router, state]);
 
@@ -114,7 +114,11 @@ function DeleteControl({ serverAction, id, label, warning }) {
 }
 
 export function ClientDetailsForm({ client, linked, onDone }) {
-  const [state, action, pending] = useSavingAction(updateClientRecord, onDone);
+  // Keep the form open when the save carries a warning (e.g. churn disabled
+  // portal access) so the message is seen; Cancel then closes it.
+  const [state, action, pending] = useSavingAction(updateClientRecord, (saved) => {
+    if (!saved.warning) onDone();
+  });
 
   return (
     <form action={action} className="drawer-form">
@@ -139,6 +143,7 @@ export function ClientDetailsForm({ client, linked, onDone }) {
           </select>
         </label>
       </div>
+      {state.success && state.warning ? <p aria-live="polite" className="invite-warning">{state.warning}</p> : null}
       <FormFooter onCancel={onDone} pending={pending} state={state} submitLabel="Save details" />
     </form>
   );

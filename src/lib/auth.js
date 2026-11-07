@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { isRecentEmailLinkSession } from "@/lib/portalAccess.mjs";
 import { createClient } from "@/lib/supabase/server";
 
 export async function getCurrentProfile() {
@@ -21,7 +22,7 @@ export async function getCurrentProfile() {
 
   const { data: profile, error } = await supabase
     .from("users")
-    .select("id, auth_id, email, full_name, role, client_id")
+    .select("id, auth_id, email, full_name, role, client_id, access_disabled_at")
     .eq("auth_id", user.id)
     .maybeSingle();
 
@@ -32,10 +33,21 @@ export async function getCurrentProfile() {
   return profile;
 }
 
+export async function hasRecentEmailLinkSession() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getClaims();
+  if (error) return false;
+  return isRecentEmailLinkSession(data?.claims);
+}
+
 export async function requireRole(allowedRoles) {
   const profile = await getCurrentProfile();
 
   if (!profile) redirect("/login");
+
+  // RLS already hides all data from disabled profiles; this turns the
+  // resulting empty pages into a clear message.
+  if (profile.access_disabled_at) redirect("/login?access=disabled");
 
   if (!allowedRoles.includes(profile.role)) {
     redirect(profile.role === "client" ? "/client/portal" : "/admin/dashboard");

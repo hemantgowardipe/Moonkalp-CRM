@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import PasswordForm from "./PasswordForm";
+import { setClientPassword } from "./actions";
 import SetupNotice from "@/components/SetupNotice";
-import { getCurrentProfile } from "@/lib/auth";
+import { getCurrentProfile, hasRecentEmailLinkSession } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,9 @@ export default async function SetupPasswordPage() {
 
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
+  if (profile.access_disabled_at) redirect("/login?access=disabled");
   if (profile.role !== "client") redirect("/admin/dashboard");
+  if (!(await hasRecentEmailLinkSession())) redirect("/login?invite=expired");
 
   return (
     <main className="setup-screen">
@@ -26,7 +29,7 @@ export default async function SetupPasswordPage() {
           <h1>Set your password</h1>
           <p>Choose a password for future sign-ins, then continue to your client portal.</p>
         </div>
-        <PasswordForm />
+        <PasswordForm formAction={setClientPassword} />
       </section>
     </main>
   );

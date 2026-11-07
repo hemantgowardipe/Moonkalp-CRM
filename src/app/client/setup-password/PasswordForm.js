@@ -1,12 +1,12 @@
 "use client";
 
 import { useActionState } from "react";
-import { setClientPassword } from "./actions";
+import { PASSWORD_MIN_LENGTH } from "@/lib/passwordPolicy.mjs";
 
 const initialState = { error: "" };
 
-export default function PasswordForm() {
-  const [state, action, pending] = useActionState(setClientPassword, initialState);
+export default function PasswordForm({ formAction, submitLabel = "Set password" }) {
+  const [state, action, pending] = useActionState(formAction, initialState);
 
   return (
     <form action={action} className="login-form">
@@ -14,9 +14,9 @@ export default function PasswordForm() {
       <input
         autoComplete="new-password"
         id="new-password"
-        minLength={8}
+        minLength={PASSWORD_MIN_LENGTH}
         name="password"
-        placeholder="At least 8 characters"
+        placeholder={`At least ${PASSWORD_MIN_LENGTH} characters`}
         required
         type="password"
       />
@@ -24,7 +24,7 @@ export default function PasswordForm() {
       <input
         autoComplete="new-password"
         id="confirm-new-password"
-        minLength={8}
+        minLength={PASSWORD_MIN_LENGTH}
         name="confirm_password"
         placeholder="Enter your password again"
         required
@@ -32,7 +32,7 @@ export default function PasswordForm() {
       />
       {state.error ? <p aria-live="polite" className="form-error">{state.error}</p> : null}
       <button className="button button-primary login-submit" disabled={pending}>
-        {pending ? "Saving..." : "Set password"}
+        {pending ? "Saving..." : submitLabel}
         <span aria-hidden="true">↗</span>
       </button>
     </form>

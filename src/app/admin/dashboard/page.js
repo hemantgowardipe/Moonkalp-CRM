@@ -22,16 +22,29 @@ export default async function AdminDashboardPage() {
 
   const profile = await requireRole(["admin", "team_member"]);
   const supabase = await createClient();
-  const { data: clients, error } = await supabase
-    .from("clients")
-    .select("id, name, company_name, email, phone, status, created_at, users(id, email, role), client_services(id, service_type, monthly_retainer, start_date, renewal_date, status, deliverables(id, title, category, pipeline_status, due_date, deliverable_reviews(id, action, note, created_at))), payments(id, amount, payment_status, due_date, paid_date, transaction_ref)")
-    .order("created_at", { ascending: false });
+  const [{ data: clients, error }, { data: portalAccess, error: portalAccessError }] = await Promise.all([
+    supabase
+      .from("clients")
+      .select("id, name, company_name, email, phone, status, created_at, users(id, email, role), client_services(id, service_type, monthly_retainer, start_date, renewal_date, status, deliverables(id, title, category, pipeline_status, due_date, deliverable_reviews(id, action, note, created_at))), payments(id, amount, payment_status, due_date, paid_date, transaction_ref), client_portal_events(id, event, created_at)")
+      .order("created_at", { ascending: false }),
+    supabase.rpc("client_portal_access"),
+  ]);
 
   if (error) {
     throw new Error(`Could not load client workspace: ${error.message}`);
   }
+  if (portalAccessError) {
+    throw new Error(`Could not load client portal access: ${portalAccessError.message}`);
+  }
 
-  const allClients = clients ?? [];
+  const accessByClient = new Map((portalAccess ?? []).map((row) => [row.client_id, row]));
+  const allClients = (clients ?? []).map((client) => ({
+    ...client,
+    portalAccess: accessByClient.get(client.id) ?? null,
+    client_portal_events: [...(client.client_portal_events ?? [])]
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+      .slice(0, 5),
+  }));
   const metrics = getAgencyDashboardMetrics(allClients);
 
   return (

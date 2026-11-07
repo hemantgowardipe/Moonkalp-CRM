@@ -13,6 +13,7 @@ import {
   todayIsoDate,
 } from "@/lib/crmRecords.mjs";
 import { requireRole } from "@/lib/auth";
+import { disablePortalLogin, recordPortalEvent } from "@/lib/portalAccessServer";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -209,8 +210,9 @@ export async function inviteClientToPortal(_previousState, formData) {
     );
   }
 
+  await recordPortalEvent(admin, client.id, "invite_sent", profile.auth_id);
   revalidatePath("/admin/dashboard");
-  return { success: true };
+  return { success: true, message: `Invitation sent to ${client.email}.` };
 }
 
 async function saveRecord(label, run) {
@@ -310,11 +312,11 @@ export async function updateClientRecord(_previousState, formData) {
   if (error) return { error };
   if (!isUuid(clientId)) return { error: "Select a valid client record." };
 
-  await requireRole(["admin", "team_member"]);
+  const profile = await requireRole(["admin", "team_member"]);
   const supabase = await createClient();
   const { data: current, error: loadError } = await supabase
     .from("clients")
-    .select("email, users(id)")
+    .select("email, status, users(id, access_disabled_at)")
     .eq("id", clientId)
     .maybeSingle();
 
@@ -325,7 +327,21 @@ export async function updateClientRecord(_previousState, formData) {
     return { error: "This client has a linked portal login, so their email cannot be changed here." };
   }
 
-  return changeRecord("client-record", "clients", clientId, (table) => table.update(values));
+  const result = await changeRecord("client-record", "clients", clientId, (table) => table.update(values));
+  if (result.error) return result;
+
+  // Churned clients lose portal access automatically. Re-enabling is always a
+  // deliberate step in the Portal access panel, never automatic.
+  const hasEnabledLogin = current.users?.some((user) => !user.access_disabled_at);
+  if (values.status === "Churned" && current.status !== "Churned" && hasEnabledLogin) {
+    const access = await disablePortalLogin(clientId, profile.auth_id);
+    if (access.error || access.warning) {
+      return { success: true, warning: `Client marked as churned. ${access.error ?? access.warning}` };
+    }
+    return { success: true, warning: "Client marked as churned and their portal access was disabled." };
+  }
+
+  return result;
 }
 
 export async function updateClientService(_previousState, formData) {

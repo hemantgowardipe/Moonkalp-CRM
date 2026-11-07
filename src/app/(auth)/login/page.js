@@ -10,9 +10,9 @@ export const dynamic = "force-dynamic";
 export default async function LoginPage({ searchParams }) {
   if (!isSupabaseConfigured()) return <SetupNotice />;
 
-  const { invite } = await searchParams;
+  const { invite, access } = await searchParams;
   const profile = await getCurrentProfile();
-  if (profile) {
+  if (profile && !profile.access_disabled_at) {
     redirect(profile.role === "client" ? "/client/portal" : "/admin/dashboard");
   }
 
@@ -35,7 +35,7 @@ export default async function LoginPage({ searchParams }) {
           <span className="eyebrow">WELCOME BACK</span>
           <h2>Sign in to your workspace</h2>
           <p className="login-subtitle">Use the email and password associated with your account.</p>
-          <LoginForm inviteStatus={invite} />
+          <LoginForm accessStatus={access} inviteStatus={invite} />
           <p className="login-help">Client? Ask your agency contact to send you a portal invitation.</p>
         </div>
         <span className="login-footer">MOONKALP CRM <span>·</span> PRIVATE WORKSPACE</span>

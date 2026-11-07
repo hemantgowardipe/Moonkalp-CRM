@@ -17,3 +17,24 @@ export function createAdminClient() {
     },
   });
 }
+
+// Sends emailed auth links (password reset) from the server. The implicit flow
+// puts the session in the link itself, so the link works on any device; the
+// default PKCE flow would only work in the browser that requested it.
+export function createEmailLinkClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !anonKey) {
+    throw new Error("Supabase is not configured on the server.");
+  }
+
+  return createSupabaseClient(url, anonKey, {
+    auth: {
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      flowType: "implicit",
+      persistSession: false,
+    },
+  });
+}

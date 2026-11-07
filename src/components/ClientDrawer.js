@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { formatCurrency } from "@/lib/formatCurrency.mjs";
-import ClientPortalInvite from "@/components/ClientPortalInvite";
+import ClientPortalAccess from "@/components/ClientPortalAccess";
 import {
   AddDeliverableForm,
   AddPaymentForm,
@@ -139,11 +139,7 @@ export default function ClientDrawer({ client, onClose }) {
             )) : <p className="empty-note">No services on this account.</p>}
             <AddServiceForm clientId={client.id} />
             <h3 className="section-label section-label-spaced">PORTAL ACCESS</h3>
-            <ClientPortalInvite
-              clientId={client.id}
-              email={client.email}
-              linked={linked}
-            />
+            <ClientPortalAccess client={client} />
           </div>
         ) : null}
 
