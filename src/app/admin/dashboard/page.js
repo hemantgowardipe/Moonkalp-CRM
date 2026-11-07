@@ -24,7 +24,7 @@ export default async function AdminDashboardPage() {
   const supabase = await createClient();
   const { data: clients, error } = await supabase
     .from("clients")
-    .select("id, name, company_name, email, phone, status, created_at, users(id, email, role), client_services(id, service_type, monthly_retainer, renewal_date, status, deliverables(id, title, category, pipeline_status, due_date)), payments(id, amount, payment_status, due_date, paid_date, transaction_ref)")
+    .select("id, name, company_name, email, phone, status, created_at, users(id, email, role), client_services(id, service_type, monthly_retainer, renewal_date, status, deliverables(id, title, category, pipeline_status, due_date, deliverable_reviews(id, action, note, created_at))), payments(id, amount, payment_status, due_date, paid_date, transaction_ref)")
     .order("created_at", { ascending: false });
 
   if (error) {

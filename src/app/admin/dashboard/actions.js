@@ -2,6 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { getClientInviteRedirectUrl } from "@/lib/clientInvite.mjs";
+import {
+  PAYMENT_STATUSES,
+  PIPELINE_STATUSES,
+  isUuid,
+  parseDeliverableForm,
+  parsePaymentForm,
+  parseServiceForm,
+  todayIsoDate,
+} from "@/lib/crmRecords.mjs";
 import { requireRole } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -95,15 +104,31 @@ export async function inviteClientToPortal(_previousState, formData) {
     return { error: "This client already has a portal account linked." };
   }
 
-  const { data: invitation, error: invitationError } = await admin
+  // A previous attempt may have left a pending invitation for this client; reuse it.
+  const { data: pendingInvitation, error: pendingInvitationError } = await admin
     .from("client_portal_invitations")
-    .insert({
-      client_id: client.id,
-      email: client.email,
-      invited_by: profile.auth_id,
-    })
     .select("id")
-    .single();
+    .eq("client_id", client.id)
+    .eq("email", client.email)
+    .is("consumed_at", null)
+    .maybeSingle();
+
+  if (pendingInvitationError) {
+    console.error("[client-invite] Could not check pending invitations", pendingInvitationError.message);
+    return { error: "Could not check for an existing invitation for this client." };
+  }
+
+  const { data: invitation, error: invitationError } = pendingInvitation
+    ? { data: pendingInvitation, error: null }
+    : await admin
+      .from("client_portal_invitations")
+      .insert({
+        client_id: client.id,
+        email: client.email,
+        invited_by: profile.auth_id,
+      })
+      .select("id")
+      .single();
 
   if (invitationError) {
     console.error(
@@ -196,4 +221,82 @@ export async function inviteClientToPortal(_previousState, formData) {
 
   revalidatePath("/admin/dashboard");
   return { success: true };
+}
+
+async function saveRecord(label, run) {
+  await requireRole(["admin", "team_member"]);
+
+  const supabase = await createClient();
+  const { error } = await run(supabase);
+
+  if (error) {
+    console.error(
+      `[${label}] Save failed`,
+      JSON.stringify({ code: error.code ?? null, message: error.message, hint: error.hint ?? null }),
+    );
+    const code = error.code ? ` (${error.code})` : "";
+    return { error: `Could not save${code}: ${error.message}` };
+  }
+
+  revalidatePath("/admin/dashboard");
+  return { success: true };
+}
+
+export async function createClientService(_previousState, formData) {
+  const { values, error } = parseServiceForm(formData);
+  if (error) return { error };
+
+  return saveRecord("client-service", (supabase) =>
+    supabase.from("client_services").insert(values),
+  );
+}
+
+export async function createDeliverable(_previousState, formData) {
+  const { values, error } = parseDeliverableForm(formData);
+  if (error) return { error };
+
+  return saveRecord("deliverable", (supabase) =>
+    supabase.from("deliverables").insert(values),
+  );
+}
+
+export async function updateDeliverableStatus(_previousState, formData) {
+  const deliverableId = String(formData.get("deliverable_id") ?? "");
+  const pipelineStatus = String(formData.get("pipeline_status") ?? "");
+
+  if (!isUuid(deliverableId) || !PIPELINE_STATUSES.includes(pipelineStatus)) {
+    return { error: "Choose a valid pipeline stage." };
+  }
+
+  return saveRecord("deliverable-status", (supabase) =>
+    supabase.from("deliverables").update({ pipeline_status: pipelineStatus }).eq("id", deliverableId),
+  );
+}
+
+export async function createPayment(_previousState, formData) {
+  const { values, error } = parsePaymentForm(formData);
+  if (error) return { error };
+
+  return saveRecord("payment", (supabase) =>
+    supabase.from("payments").insert(values),
+  );
+}
+
+export async function updatePaymentStatus(_previousState, formData) {
+  const paymentId = String(formData.get("payment_id") ?? "");
+  const paymentStatus = String(formData.get("payment_status") ?? "");
+
+  if (!isUuid(paymentId) || !PAYMENT_STATUSES.includes(paymentStatus)) {
+    return { error: "Choose a valid payment status." };
+  }
+
+  return saveRecord("payment-status", (supabase) =>
+    supabase
+      .from("payments")
+      .update({
+        payment_status: paymentStatus,
+        paid_date: paymentStatus === "Paid" ? todayIsoDate() : null,
+      })
+      .eq("id", paymentId),
+  );
 }

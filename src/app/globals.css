@@ -416,3 +416,18 @@ button { color: inherit; }
   .drawer-topline, .drawer-tabs { padding-right: 15px; padding-left: 15px; }
   .pipeline-date { width: 40px; font-size: 8px; }
 }
+
+/* Drawer add/edit forms */
+.drawer-add-button { width: 100%; margin-top: 14px; justify-content: center; }
+.drawer-form { display: grid; gap: 10px; margin-top: 14px; border: 1px solid #e8ece8; border-radius: 8px; background: #fafbf9; padding: 14px; }
+.drawer-form label { display: grid; gap: 5px; color: #536159; font-size: 10px; font-weight: 600; }
+.drawer-form input, .drawer-form select { width: 100%; height: 36px; border: 1px solid #e3e8e2; border-radius: 6px; outline: none; background: #fff; padding: 0 10px; color: #26392d; font-size: 11px; }
+.drawer-form input:focus, .drawer-form select:focus { border-color: #79a27c; box-shadow: 0 0 0 3px rgb(121 162 124 / 12%); }
+.drawer-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.drawer-form-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.drawer-form .form-error { margin: 0; }
+.status-select-form { display: grid; justify-items: end; gap: 3px; margin-left: auto; }
+.status-select { height: 26px; border: 1px solid #e3e8e2; border-radius: 999px; background: #fff; padding: 0 8px; color: #3c4a41; font-size: 9px; font-weight: 600; cursor: pointer; }
+.status-select:disabled { cursor: wait; opacity: .6; }
+.status-select-form .form-error { max-width: 160px; font-size: 9px; text-align: right; }
+@media (max-width: 480px) { .drawer-form-row { grid-template-columns: 1fr; } }

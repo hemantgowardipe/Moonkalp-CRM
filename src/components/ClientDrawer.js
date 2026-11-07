@@ -3,6 +3,13 @@
 import { useEffect, useState } from "react";
 import { formatCurrency } from "@/lib/formatCurrency.mjs";
 import ClientPortalInvite from "@/components/ClientPortalInvite";
+import {
+  AddDeliverableForm,
+  AddPaymentForm,
+  AddServiceForm,
+  DeliverableStatusSelect,
+  PaymentStatusSelect,
+} from "@/components/DrawerForms";
 
 const tabs = ["Overview", "Deliverables", "Billing"];
 
@@ -100,6 +107,7 @@ export default function ClientDrawer({ client, onClose }) {
                 <Status>{service.status}</Status>
               </div>
             )) : <p className="empty-note">No services on this account.</p>}
+            <AddServiceForm clientId={client.id} />
             <h3 className="section-label section-label-spaced">PORTAL ACCESS</h3>
             <ClientPortalInvite
               clientId={client.id}
@@ -119,10 +127,11 @@ export default function ClientDrawer({ client, onClose }) {
                   <strong>{item.title}</strong>
                   <span>{item.category} · {item.serviceType} · Due {formatDate(item.due_date)}</span>
                 </div>
-                <Status>{item.pipeline_status}</Status>
                 {item.latestReview ? <Status>{item.latestReview.action}</Status> : null}
+                <DeliverableStatusSelect deliverable={item} />
               </div>
             )) : <p className="empty-note">No deliverables have been added.</p>}
+            <AddDeliverableForm services={services} />
           </div>
         ) : null}
 
@@ -135,9 +144,10 @@ export default function ClientDrawer({ client, onClose }) {
                   <strong>{formatCurrency(Number(payment.amount))}</strong>
                   <span>Due {formatDate(payment.due_date)}{payment.transaction_ref ? ` · ${payment.transaction_ref}` : ""}</span>
                 </div>
-                <Status>{payment.payment_status}</Status>
+                <PaymentStatusSelect payment={payment} />
               </div>
             )) : <p className="empty-note">No payment records have been added.</p>}
+            <AddPaymentForm clientId={client.id} />
           </div>
         ) : null}
       </aside>

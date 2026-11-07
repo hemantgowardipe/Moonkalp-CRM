@@ -10,7 +10,8 @@ function Status({ children }) {
 }
 
 export default function ClientDirectory({ clients }) {
-  const [selectedClient, setSelectedClient] = useState(null);
+  const [selectedClientId, setSelectedClientId] = useState(null);
+  const selectedClient = clients.find((client) => client.id === selectedClientId);
 
   return (
     <>
@@ -34,7 +35,7 @@ export default function ClientDirectory({ clients }) {
                   return (
                     <tr key={client.id}>
                       <td>
-                        <button className="client-name-link" onClick={() => setSelectedClient(client)} type="button">
+                        <button className="client-name-link" onClick={() => setSelectedClientId(client.id)} type="button">
                           <span className="client-avatar">{client.company_name.slice(0, 1).toUpperCase()}</span>
                           <span className="client-cell"><strong>{client.company_name}</strong><span>{client.name}</span></span>
                         </button>
@@ -43,7 +44,7 @@ export default function ClientDirectory({ clients }) {
                       <td className="mono-cell">{formatCurrency(retainer)}</td>
                       <td><span className="open-work-count">{openWork.toString().padStart(2, "0")}</span></td>
                       <td><Status>{client.status}</Status></td>
-                      <td><button aria-label={`Open ${client.company_name} details`} className="row-arrow" onClick={() => setSelectedClient(client)} type="button">↗</button></td>
+                      <td><button aria-label={`Open ${client.company_name} details`} className="row-arrow" onClick={() => setSelectedClientId(client.id)} type="button">↗</button></td>
                     </tr>
                   );
                 })}
@@ -54,7 +55,7 @@ export default function ClientDirectory({ clients }) {
           <div className="empty-state"><span className="empty-icon">◉</span><strong>Your client list starts here.</strong><p>Add your first client to bring services, deliverables, and billing into one place.</p></div>
         )}
       </section>
-      {selectedClient ? <ClientDrawer client={selectedClient} onClose={() => setSelectedClient(null)} /> : null}
+      {selectedClient ? <ClientDrawer client={selectedClient} onClose={() => setSelectedClientId(null)} /> : null}
     </>
   );
 }

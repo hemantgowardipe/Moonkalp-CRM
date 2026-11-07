@@ -9,7 +9,10 @@ export async function getCurrentProfile() {
   } = await supabase.auth.getUser();
 
   if (authError) {
+    // A missing, expired, or revoked session (e.g. a stale refresh token cookie)
+    // means the visitor is signed out; only unexpected failures should throw.
     if (authError.name === "AuthSessionMissingError") return null;
+    if (authError.status >= 400 && authError.status < 500) return null;
 
     throw new Error(`Could not verify the current session: ${authError.message}`);
   }

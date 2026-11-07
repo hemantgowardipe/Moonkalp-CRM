@@ -19,7 +19,10 @@ export async function GET(request) {
       type: "invite",
     }));
   } else {
-    return NextResponse.redirect(new URL("/login?invite=invalid", redirectOrigin));
+    // Default invite emails use the implicit flow, which puts the session in the
+    // URL fragment. The server cannot read it, but the browser keeps it across
+    // this redirect so the confirm page can.
+    return NextResponse.redirect(new URL("/auth/confirm", redirectOrigin));
   }
 
   if (error) {
