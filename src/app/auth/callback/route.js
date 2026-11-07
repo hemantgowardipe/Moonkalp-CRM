@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getAuthLinkDestination, isAuthLinkType } from "@/lib/portalAccess.mjs";
+import { resolveSiteUrl } from "@/lib/clientInvite.mjs";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request) {
   const url = new URL(request.url);
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  const siteUrl = resolveSiteUrl();
   const redirectOrigin = siteUrl ? new URL(siteUrl).origin : url.origin;
   const code = url.searchParams.get("code");
   const tokenHash = url.searchParams.get("token_hash");

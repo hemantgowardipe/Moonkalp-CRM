@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getClientInviteRedirectUrl } from "@/lib/clientInvite.mjs";
+import { getClientInviteRedirectUrl, resolveSiteUrl } from "@/lib/clientInvite.mjs";
 import {
   PAYMENT_STATUSES,
   PIPELINE_STATUSES,
@@ -75,9 +75,7 @@ export async function inviteClientToPortal(_previousState, formData) {
     return { error: "Portal invitations require SUPABASE_SERVICE_ROLE_KEY in the server environment." };
   }
 
-  const { redirectTo, error: redirectError } = getClientInviteRedirectUrl(
-    process.env.NEXT_PUBLIC_SITE_URL,
-  );
+  const { redirectTo, error: redirectError } = getClientInviteRedirectUrl(resolveSiteUrl());
   if (redirectError) return { error: redirectError };
 
   const admin = createAdminClient();

@@ -1,6 +1,6 @@
 "use server";
 
-import { getClientInviteRedirectUrl } from "@/lib/clientInvite.mjs";
+import { getClientInviteRedirectUrl, resolveSiteUrl } from "@/lib/clientInvite.mjs";
 import { describeAuthError } from "@/lib/portalAccess.mjs";
 import { createEmailLinkClient } from "@/lib/supabase/admin";
 
@@ -11,7 +11,7 @@ export async function requestPasswordReset(_previousState, formData) {
     return { error: "Enter a valid email address." };
   }
 
-  const { redirectTo, error: redirectError } = getClientInviteRedirectUrl(process.env.NEXT_PUBLIC_SITE_URL);
+  const { redirectTo, error: redirectError } = getClientInviteRedirectUrl(resolveSiteUrl());
   if (redirectError) {
     console.error("[password-reset] Site URL is misconfigured", redirectError);
     return { error: "Password reset is unavailable right now. Contact your agency admin." };

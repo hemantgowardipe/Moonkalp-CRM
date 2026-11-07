@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth";
-import { getClientInviteRedirectUrl } from "@/lib/clientInvite.mjs";
+import { getClientInviteRedirectUrl, resolveSiteUrl } from "@/lib/clientInvite.mjs";
 import { isUuid } from "@/lib/crmRecords.mjs";
 import { describeAuthError, getPortalStatus } from "@/lib/portalAccess.mjs";
 import { disablePortalLogin, enablePortalLogin, recordPortalEvent } from "@/lib/portalAccessServer";
@@ -37,7 +37,7 @@ export async function resendPortalInvite(_previousState, formData) {
     return { error: "This client has already set a password. They can use “Forgot password?” on the sign-in page." };
   }
 
-  const { redirectTo, error: redirectError } = getClientInviteRedirectUrl(process.env.NEXT_PUBLIC_SITE_URL);
+  const { redirectTo, error: redirectError } = getClientInviteRedirectUrl(resolveSiteUrl());
   if (redirectError) return { error: redirectError };
 
   const admin = createAdminClient();
