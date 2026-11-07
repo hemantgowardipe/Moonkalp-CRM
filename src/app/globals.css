@@ -431,3 +431,15 @@ button { color: inherit; }
 .status-select:disabled { cursor: wait; opacity: .6; }
 .status-select-form .form-error { max-width: 160px; font-size: 9px; text-align: right; }
 @media (max-width: 480px) { .drawer-form-row { grid-template-columns: 1fr; } }
+.service-line > div:first-child, .payment-line > div:first-child { flex: 1; }
+.edit-record-button { border: 0; background: none; padding: 4px 2px; color: #6d8d6d; font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: .04em; cursor: pointer; }
+.edit-record-button:hover { color: var(--green-dark); text-decoration: underline; }
+.drawer-edit { margin: 10px 0; }
+.drawer-edit .drawer-form { margin-top: 0; }
+.delete-record-button { margin-top: 8px; border: 0; background: none; padding: 4px 0; color: #aa5148; font-size: 10px; font-weight: 600; cursor: pointer; }
+.delete-record-button:hover { text-decoration: underline; }
+.delete-confirm { display: grid; gap: 8px; margin-top: 10px; border: 1px solid #efd6d2; border-radius: 8px; background: #fdf6f5; padding: 12px 14px; }
+.delete-confirm p { margin: 0; color: #7d3b33; font-size: 10px; line-height: 1.5; }
+.button-danger { background: #b4493f; color: white; }
+.button-danger:hover:not(:disabled) { background: #963a31; }
+.field-hint { margin: -4px 0 0; color: #8d9890; font-size: 9px; }

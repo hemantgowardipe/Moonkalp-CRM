@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  parseClientForm,
   parseDeliverableForm,
   parsePaymentForm,
   parseServiceForm,
@@ -83,4 +84,35 @@ test("only sets a paid date on paid payments, defaulting to today", () => {
 
   const zero = parsePaymentForm(form({ client_id: CLIENT_ID, amount: "0", due_date: "2026-11-30" }), now);
   assert.match(zero.error, /greater than zero/);
+});
+
+test("normalises client details and defaults new clients to Active", () => {
+  const { values } = parseClientForm(form({
+    name: " Asha Rao ",
+    company_name: "Rao Bakers",
+    email: " Asha@RaoBakers.in ",
+    phone: "",
+  }));
+
+  assert.deepEqual(values, {
+    name: "Asha Rao",
+    company_name: "Rao Bakers",
+    email: "asha@raobakers.in",
+    phone: null,
+    status: "Active",
+  });
+  assert.match(parseClientForm(form({ name: "A", company_name: "B", email: "not-an-email" })).error, /valid email/);
+  assert.match(parseClientForm(form({ name: "A", company_name: "B", email: "a@b.co", status: "Gone" })).error, /status/);
+});
+
+test("accepts an edited service status and rejects unknown ones", () => {
+  const fields = {
+    client_id: CLIENT_ID,
+    service_type: "Social Media",
+    monthly_retainer: "25000",
+    start_date: "2026-11-01",
+  };
+
+  assert.equal(parseServiceForm(form({ ...fields, status: "Paused" })).values.status, "Paused");
+  assert.match(parseServiceForm(form({ ...fields, status: "Cancelled" })).error, /service status/);
 });

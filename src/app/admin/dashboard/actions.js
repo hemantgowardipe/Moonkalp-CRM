@@ -6,6 +6,7 @@ import {
   PAYMENT_STATUSES,
   PIPELINE_STATUSES,
   isUuid,
+  parseClientForm,
   parseDeliverableForm,
   parsePaymentForm,
   parseServiceForm,
@@ -18,24 +19,13 @@ import { createClient } from "@/lib/supabase/server";
 export async function createClientRecord(_previousState, formData) {
   await requireRole(["admin", "team_member"]);
 
-  const name = String(formData.get("name") ?? "").trim();
-  const companyName = String(formData.get("company_name") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const phone = String(formData.get("phone") ?? "").trim();
-
-  if (!name || !companyName || !email) {
-    return { error: "Contact name, company name, and email are required." };
-  }
+  const { values, error: validationError } = parseClientForm(formData);
+  if (validationError) return { error: validationError };
 
   const supabase = await createClient();
   const { data: createdClient, error } = await supabase
     .from("clients")
-    .insert({
-      name,
-      company_name: companyName,
-      email,
-      phone: phone || null,
-    })
+    .insert(values)
     .select("id")
     .single();
 
@@ -268,8 +258,8 @@ export async function updateDeliverableStatus(_previousState, formData) {
     return { error: "Choose a valid pipeline stage." };
   }
 
-  return saveRecord("deliverable-status", (supabase) =>
-    supabase.from("deliverables").update({ pipeline_status: pipelineStatus }).eq("id", deliverableId),
+  return changeRecord("deliverable-status", "deliverables", deliverableId, (table) =>
+    table.update({ pipeline_status: pipelineStatus }),
   );
 }
 
@@ -290,13 +280,95 @@ export async function updatePaymentStatus(_previousState, formData) {
     return { error: "Choose a valid payment status." };
   }
 
-  return saveRecord("payment-status", (supabase) =>
-    supabase
-      .from("payments")
-      .update({
-        payment_status: paymentStatus,
-        paid_date: paymentStatus === "Paid" ? todayIsoDate() : null,
-      })
-      .eq("id", paymentId),
+  return changeRecord("payment-status", "payments", paymentId, (table) =>
+    table.update({
+      payment_status: paymentStatus,
+      paid_date: paymentStatus === "Paid" ? todayIsoDate() : null,
+    }),
+  );
+}
+
+// Updates or deletes one row by id, reporting rows that no longer exist.
+function changeRecord(label, tableName, id, change) {
+  if (!isUuid(id)) return { error: "That record could not be found." };
+
+  return saveRecord(label, async (supabase) => {
+    const { data, error } = await change(supabase.from(tableName)).eq("id", id).select("id");
+    if (!error && !data?.length) return { error: { message: "That record no longer exists." } };
+    return { error };
+  });
+}
+
+function withoutKey(values, key) {
+  const { [key]: _omitted, ...rest } = values;
+  return rest;
+}
+
+export async function updateClientRecord(_previousState, formData) {
+  const clientId = String(formData.get("client_id") ?? "");
+  const { values, error } = parseClientForm(formData);
+  if (error) return { error };
+  if (!isUuid(clientId)) return { error: "Select a valid client record." };
+
+  await requireRole(["admin", "team_member"]);
+  const supabase = await createClient();
+  const { data: current, error: loadError } = await supabase
+    .from("clients")
+    .select("email, users(id)")
+    .eq("id", clientId)
+    .maybeSingle();
+
+  if (loadError) return { error: `Could not load client record: ${loadError.message}` };
+  if (!current) return { error: "That client record could not be found." };
+  // A linked portal login signs in with the client's email, so keep them in sync.
+  if (current.users?.length && current.email !== values.email) {
+    return { error: "This client has a linked portal login, so their email cannot be changed here." };
+  }
+
+  return changeRecord("client-record", "clients", clientId, (table) => table.update(values));
+}
+
+export async function updateClientService(_previousState, formData) {
+  const { values, error } = parseServiceForm(formData);
+  if (error) return { error };
+
+  return changeRecord("client-service", "client_services", String(formData.get("service_id") ?? ""), (table) =>
+    table.update(withoutKey(values, "client_id")),
+  );
+}
+
+export async function deleteClientService(_previousState, formData) {
+  return changeRecord("client-service-delete", "client_services", String(formData.get("id") ?? ""), (table) =>
+    table.delete(),
+  );
+}
+
+export async function updateDeliverable(_previousState, formData) {
+  const { values, error } = parseDeliverableForm(formData);
+  if (error) return { error };
+
+  return changeRecord("deliverable", "deliverables", String(formData.get("deliverable_id") ?? ""), (table) =>
+    table.update(values),
+  );
+}
+
+export async function deleteDeliverable(_previousState, formData) {
+  return changeRecord("deliverable-delete", "deliverables", String(formData.get("id") ?? ""), (table) =>
+    table.delete(),
+  );
+}
+
+export async function updatePayment(_previousState, formData) {
+  const { values, error } = parsePaymentForm(formData);
+  if (error) return { error };
+
+  return changeRecord("payment", "payments", String(formData.get("payment_id") ?? ""), (table) =>
+    table.update(withoutKey(values, "client_id")),
+  );
+}
+
+export async function deletePayment(_previousState, formData) {
+  return changeRecord("payment-delete", "payments", String(formData.get("id") ?? ""), (table) =>
+    table.delete(),
   );
 }

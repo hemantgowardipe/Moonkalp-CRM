@@ -1,3 +1,4 @@
+export const CLIENT_STATUSES = ["Active", "Paused", "Churned"];
 export const SERVICE_TYPES = ["Social Media", "Website Management"];
 export const SERVICE_STATUSES = ["Active", "Paused", "Ended"];
 export const DELIVERABLE_CATEGORIES = ["Reel", "Post", "Website Fix"];
@@ -24,15 +25,41 @@ export function todayIsoDate(now = new Date()) {
   return `${now.getFullYear()}-${month}-${day}`;
 }
 
+export function parseClientForm(formData) {
+  const name = text(formData, "name");
+  const companyName = text(formData, "company_name");
+  const email = text(formData, "email").toLowerCase();
+  const phone = text(formData, "phone");
+  const status = text(formData, "status") || "Active";
+
+  if (!name || !companyName || !email) {
+    return { error: "Contact name, company name, and email are required." };
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Enter a valid email address." };
+  if (!CLIENT_STATUSES.includes(status)) return { error: "Choose a client status." };
+
+  return {
+    values: {
+      name,
+      company_name: companyName,
+      email,
+      phone: phone || null,
+      status,
+    },
+  };
+}
+
 export function parseServiceForm(formData) {
   const clientId = text(formData, "client_id");
   const serviceType = text(formData, "service_type");
+  const status = text(formData, "status") || "Active";
   const retainer = Number(text(formData, "monthly_retainer"));
   const startDate = text(formData, "start_date");
   const renewalDate = text(formData, "renewal_date");
 
   if (!isUuid(clientId)) return { error: "Select a valid client record." };
   if (!SERVICE_TYPES.includes(serviceType)) return { error: "Choose a service type." };
+  if (!SERVICE_STATUSES.includes(status)) return { error: "Choose a service status." };
   if (!Number.isFinite(retainer) || retainer < 0) {
     return { error: "Monthly retainer must be zero or a positive amount." };
   }
@@ -49,7 +76,7 @@ export function parseServiceForm(formData) {
       monthly_retainer: retainer,
       start_date: startDate,
       renewal_date: renewalDate || null,
-      status: "Active",
+      status,
     },
   };
 }
