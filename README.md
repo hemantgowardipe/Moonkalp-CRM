@@ -20,6 +20,7 @@ A Next.js App Router CRM starter for agency teams and their clients. It uses Sup
    - `20261107120000_fix_invite_profile_link.sql`: links invited users to their client record.
    - `20261107140000_portal_access_controls.sql`: portal status, disable/enable access, and the portal activity log.
    - `20261108090000_settings_and_audit.sql`: organization settings, per-user appearance preferences, and the append-only audit log (written by database triggers).
+   - `20261114090000_invoices_files_comments_notifications.sql`: invoices with line items, deliverable file attachments (plus the private `deliverable-files` storage bucket), deliverable comment threads, and the in-app notifications inbox.
 
    `20261101200000_client_self_signup.sql` is historical (public sign-up was removed); the invite migrations replace its trigger. When deploying, **run new migrations before deploying the code that uses them**.
 
