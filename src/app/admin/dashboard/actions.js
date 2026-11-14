@@ -13,6 +13,8 @@ import {
   todayIsoDate,
 } from "@/lib/crmRecords.mjs";
 import { requireRole } from "@/lib/auth";
+import { buildNotification } from "@/lib/notificationRules.mjs";
+import { notifyClientUsers } from "@/lib/notificationsServer";
 import { disablePortalLogin, recordPortalEvent } from "@/lib/portalAccessServer";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -250,6 +252,28 @@ export async function createDeliverable(_previousState, formData) {
   );
 }
 
+// When work first lands in Pending Approval, the client is asked to review it.
+async function notifyIfReadyForReview(deliverableId, newStatus) {
+  if (newStatus !== "Pending Approval") return;
+
+  const supabase = await createClient();
+  const { data: deliverable, error } = await supabase
+    .from("deliverables")
+    .select("id, title, pipeline_status, client_services!inner(client_id)")
+    .eq("id", deliverableId)
+    .maybeSingle();
+
+  if (error || !deliverable) {
+    if (error) console.error("[deliverable-notify] Could not load deliverable", error.message);
+    return;
+  }
+
+  await notifyClientUsers(
+    deliverable.client_services.client_id,
+    buildNotification("deliverable_ready", { deliverableTitle: deliverable.title }),
+  );
+}
+
 export async function updateDeliverableStatus(_previousState, formData) {
   const deliverableId = String(formData.get("deliverable_id") ?? "");
   const pipelineStatus = String(formData.get("pipeline_status") ?? "");
@@ -258,9 +282,21 @@ export async function updateDeliverableStatus(_previousState, formData) {
     return { error: "Choose a valid pipeline stage." };
   }
 
-  return changeRecord("deliverable-status", "deliverables", deliverableId, (table) =>
+  await requireRole(["admin", "team_member"]);
+  const { data: before } = await (await createClient())
+    .from("deliverables")
+    .select("pipeline_status")
+    .eq("id", deliverableId)
+    .maybeSingle();
+
+  const result = await changeRecord("deliverable-status", "deliverables", deliverableId, (table) =>
     table.update({ pipeline_status: pipelineStatus }),
   );
+
+  if (result.success && before && before.pipeline_status !== pipelineStatus) {
+    await notifyIfReadyForReview(deliverableId, pipelineStatus);
+  }
+  return result;
 }
 
 export async function createPayment(_previousState, formData) {
@@ -361,9 +397,20 @@ export async function updateDeliverable(_previousState, formData) {
   const { values, error } = parseDeliverableForm(formData);
   if (error) return { error };
 
-  return changeRecord("deliverable", "deliverables", String(formData.get("deliverable_id") ?? ""), (table) =>
+  await requireRole(["admin", "team_member"]);
+  const deliverableId = String(formData.get("deliverable_id") ?? "");
+  const { data: before } = isUuid(deliverableId)
+    ? await (await createClient()).from("deliverables").select("pipeline_status").eq("id", deliverableId).maybeSingle()
+    : { data: null };
+
+  const result = await changeRecord("deliverable", "deliverables", deliverableId, (table) =>
     table.update(values),
   );
+
+  if (result.success && before && before.pipeline_status !== values.pipeline_status) {
+    await notifyIfReadyForReview(deliverableId, values.pipeline_status);
+  }
+  return result;
 }
 
 export async function deleteDeliverable(_previousState, formData) {

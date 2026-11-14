@@ -28,7 +28,7 @@ export default async function AdminDashboardPage() {
   const [{ data: clients, error }, { data: portalAccess, error: portalAccessError }] = await Promise.all([
     supabase
       .from("clients")
-      .select("id, name, company_name, email, phone, status, created_at, users(id, email, role), client_services(id, service_type, monthly_retainer, start_date, renewal_date, status, deliverables(id, title, category, pipeline_status, due_date, deliverable_reviews(id, action, note, created_at))), payments(id, amount, payment_status, due_date, paid_date, transaction_ref), client_portal_events(id, event, created_at)")
+      .select("id, name, company_name, email, phone, status, created_at, users(id, email, role), client_services(id, service_type, monthly_retainer, start_date, renewal_date, status, deliverables(id, title, category, pipeline_status, due_date, deliverable_reviews(id, action, note, created_at), deliverable_files(id, file_name, content_type, size_bytes, created_at), deliverable_comments(id, author_name, author_role, body, created_at))), payments(id, amount, payment_status, due_date, paid_date, transaction_ref), invoices(id, invoice_number, status, issue_date, due_date, notes, sent_at, paid_at, created_at, invoice_items(id, position, description, quantity, unit_price)), client_portal_events(id, event, created_at)")
       .order("created_at", { ascending: false }),
     supabase.rpc("client_portal_access"),
   ]);

@@ -25,6 +25,14 @@ const PATHS = {
   inbox: <><path d="M3 13.5 5.5 5h13l2.5 8.5V19a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-5.5Z" /><path d="M3 13.5h5l1.5 2.5h5l1.5-2.5h5" /></>,
   trend: <><path d="m3 17 6-6 4 4 8-8" /><path d="M15 7h6v6" /></>,
   alert: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5v5M12 16h.01" /></>,
+  bell: <><path d="M18 10a6 6 0 1 0-12 0c0 4-1.5 5.5-2.5 6.5h17c-1-1-2.5-2.5-2.5-6.5Z" /><path d="M10 20a2 2 0 0 0 4 0" /></>,
+  file: <><path d="M13.5 3H7a1.5 1.5 0 0 0-1.5 1.5v15A1.5 1.5 0 0 0 7 21h10a1.5 1.5 0 0 0 1.5-1.5V8L13.5 3Z" /><path d="M13.5 3v5h5" /></>,
+  paperclip: <path d="m20 11.5-7.8 7.8a5 5 0 0 1-7-7l8.4-8.4a3.3 3.3 0 0 1 4.7 4.7l-8.4 8.3a1.7 1.7 0 0 1-2.4-2.3L15 7" />,
+  download: <><path d="M12 3.5v11M7.5 10l4.5 4.5L16.5 10" /><path d="M4 17v2.5A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5V17" /></>,
+  send: <><path d="M21 3 10.5 13.5" /><path d="M21 3 14 21l-3.5-7.5L3 10l18-7Z" /></>,
+  comment: <path d="M21 11.5a7.5 7.5 0 0 1-7.5 7.5H8l-4.5 3V11.5a7.5 7.5 0 0 1 7.5-7.5h2.5a7.5 7.5 0 0 1 7.5 7.5Z" />,
+  receipt: <><path d="M6 3h12v18l-2-1.5L14 21l-2-1.5L10 21l-2-1.5L6 21V3Z" /><path d="M9.5 8h5M9.5 12h5" /></>,
+  print: <><path d="M7 8V3.5h10V8" /><rect height="8" rx="1.5" width="18" x="3" y="8" /><path d="M7 13.5h10V21H7v-7.5Z" /></>,
 };
 
 export default function Icon({ name, size = 20, className, title }) {

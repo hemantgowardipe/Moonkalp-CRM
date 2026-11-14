@@ -1,8 +1,34 @@
 import Link from "next/link";
 import BrandLogo from "@/components/BrandLogo";
 import Icon from "@/components/Icon";
+import NotificationsBell from "@/components/NotificationsBell";
 import SignOutButton from "@/components/SignOutButton";
 import { getCurrentOrganizationSettings } from "@/lib/settings";
+import { createClient } from "@/lib/supabase/server";
+
+async function getNotifications(authId) {
+  const supabase = await createClient();
+  const [{ data: notifications, error }, { count, error: countError }] = await Promise.all([
+    supabase
+      .from("notifications")
+      .select("id, type, title, body, href, created_at, read_at")
+      .eq("recipient_auth_id", authId)
+      .order("created_at", { ascending: false })
+      .limit(15),
+    supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("recipient_auth_id", authId)
+      .is("read_at", null),
+  ]);
+
+  // A missing table (migration not run yet) must not take down the shell.
+  if (error || countError) {
+    console.error("[notifications] Could not load inbox", (error ?? countError).message);
+    return { notifications: [], unreadCount: 0 };
+  }
+  return { notifications: notifications ?? [], unreadCount: count ?? 0 };
+}
 
 const STAFF_NAV = [
   { key: "overview", label: "Overview", href: "/admin/dashboard", icon: "home" },
@@ -31,7 +57,10 @@ export default async function WorkspaceShell({ children, active = "overview", pr
   const clientMode = profile.role === "client";
   const nav = clientMode ? CLIENT_NAV : STAFF_NAV;
   const home = clientMode ? "/client/portal" : "/admin/dashboard";
-  const organization = await getCurrentOrganizationSettings();
+  const [organization, inbox] = await Promise.all([
+    getCurrentOrganizationSettings(),
+    getNotifications(profile.auth_id),
+  ]);
   const roleLabel = { admin: "Admin", team_member: "Team member", client: "Client" }[profile.role];
 
   return (
@@ -57,6 +86,7 @@ export default async function WorkspaceShell({ children, active = "overview", pr
           ))}
         </nav>
         <div className="sidebar-footer">
+          <NotificationsBell notifications={inbox.notifications} placement="sidebar" unreadCount={inbox.unreadCount} />
           <Link className="user-chip" href="/settings">
             <span className="avatar">{initials(profile.full_name)}</span>
             <span className="user-chip-text">
@@ -73,6 +103,7 @@ export default async function WorkspaceShell({ children, active = "overview", pr
           <BrandLogo height={30} />
         </Link>
         <span className="appbar-title">{title ?? organization.agency_name}</span>
+        <NotificationsBell notifications={inbox.notifications} placement="appbar" unreadCount={inbox.unreadCount} />
         <Link aria-label="Account settings" className="avatar avatar-button" href="/settings">
           {initials(profile.full_name)}
         </Link>

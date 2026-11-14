@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { formatCurrency } from "@/lib/formatCurrency.mjs";
 import ClientPortalAccess from "@/components/ClientPortalAccess";
+import CommentThread from "@/components/CommentThread";
+import DeliverableFiles from "@/components/DeliverableFiles";
 import Icon from "@/components/Icon";
+import InvoicesSection from "@/components/InvoicesSection";
 import {
   AddDeliverableForm,
   AddPaymentForm,
@@ -159,18 +162,22 @@ export default function ClientDrawer({ client, onClose, paymentTermsDays }) {
                 key={item.id}
               >
                 {(edit) => (
-                  <div className="drawer-item">
-                    <div className="deliverable-dot" />
-                    <div className="drawer-item-main">
-                      <strong>{item.title}</strong>
-                      <span>{item.category} · {item.serviceType} · Due {formatDate(item.due_date)}</span>
-                      {item.latestReview?.note ? (
-                        <span className="drawer-review-note">Client note: “{item.latestReview.note}”</span>
-                      ) : null}
+                  <div className="drawer-item drawer-item-stacked">
+                    <div className="drawer-item-top">
+                      <div className="deliverable-dot" />
+                      <div className="drawer-item-main">
+                        <strong>{item.title}</strong>
+                        <span>{item.category} · {item.serviceType} · Due {formatDate(item.due_date)}</span>
+                        {item.latestReview?.note ? (
+                          <span className="drawer-review-note">Client note: “{item.latestReview.note}”</span>
+                        ) : null}
+                      </div>
+                      {item.latestReview ? <Status>{item.latestReview.action}</Status> : null}
+                      <DeliverableStatusSelect deliverable={item} />
+                      <EditButton label={`Edit ${item.title}`} onClick={edit} />
                     </div>
-                    {item.latestReview ? <Status>{item.latestReview.action}</Status> : null}
-                    <DeliverableStatusSelect deliverable={item} />
-                    <EditButton label={`Edit ${item.title}`} onClick={edit} />
+                    <DeliverableFiles deliverableId={item.id} files={item.deliverable_files ?? []} />
+                    <CommentThread comments={item.deliverable_comments ?? []} deliverableId={item.id} />
                   </div>
                 )}
               </EditableRecord>
@@ -181,7 +188,8 @@ export default function ClientDrawer({ client, onClose, paymentTermsDays }) {
 
         {activeTab === "Billing" ? (
           <div className="drawer-content">
-            <h3 className="section-label">BILLING HISTORY <span>{payments.length}</span></h3>
+            <InvoicesSection client={client} invoices={client.invoices ?? []} paymentTermsDays={paymentTermsDays} />
+            <h3 className="section-label section-label-spaced">PAYMENT HISTORY <span>{payments.length}</span></h3>
             {payments.length ? payments.map((payment) => (
               <EditableRecord
                 editor={(close) => <EditPaymentForm clientId={client.id} onDone={close} payment={payment} />}

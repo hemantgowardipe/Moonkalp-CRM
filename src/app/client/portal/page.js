@@ -1,12 +1,16 @@
 import SetupNotice from "@/components/SetupNotice";
 import DatabaseMigrationNotice from "@/components/DatabaseMigrationNotice";
 import WorkspaceShell from "@/components/WorkspaceShell";
+import CommentThread from "@/components/CommentThread";
 import DeliverableReviewActions from "@/components/DeliverableReviewActions";
 import Icon from "@/components/Icon";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { todayIsoDate } from "@/lib/crmRecords.mjs";
+import { formatFileSize } from "@/lib/deliverableFiles.mjs";
 import { formatCurrency } from "@/lib/formatCurrency.mjs";
+import { displayInvoiceStatus, invoiceTotal, outstandingInvoiceTotal } from "@/lib/invoiceRules.mjs";
 import { getCurrentOrganizationSettings } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
@@ -38,7 +42,7 @@ export default async function ClientPortalPage() {
   const [{ data: client, error }, organization] = await Promise.all([
     supabase
       .from("clients")
-      .select("id, name, company_name, client_services(id, service_type, monthly_retainer, renewal_date, status, deliverables(id, title, category, pipeline_status, due_date, deliverable_reviews(id, action, note, created_at))), payments(id, amount, payment_status, due_date, paid_date, transaction_ref)")
+      .select("id, name, company_name, client_services(id, service_type, monthly_retainer, renewal_date, status, deliverables(id, title, category, pipeline_status, due_date, deliverable_reviews(id, action, note, created_at), deliverable_files(id, file_name, content_type, size_bytes, created_at), deliverable_comments(id, author_name, author_role, body, created_at))), payments(id, amount, payment_status, due_date, paid_date, transaction_ref), invoices(id, invoice_number, status, issue_date, due_date, paid_at, created_at, invoice_items(id, position, description, quantity, unit_price))")
       .eq("id", profile.client_id)
       .maybeSingle(),
     getCurrentOrganizationSettings(),
@@ -71,10 +75,36 @@ export default async function ClientPortalPage() {
   );
   const otherWork = deliverables.filter((item) => !needsReview.includes(item));
   const payments = [...(client.payments ?? [])].sort((a, b) => b.due_date.localeCompare(a.due_date));
-  const amountDue = payments
-    .filter((payment) => payment.payment_status !== "Paid")
-    .reduce((sum, payment) => sum + Number(payment.amount), 0);
+  const invoices = [...(client.invoices ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const amountDue =
+    payments
+      .filter((payment) => payment.payment_status !== "Paid")
+      .reduce((sum, payment) => sum + Number(payment.amount), 0) +
+    outstandingInvoiceTotal(invoices);
+  const today = todayIsoDate();
   const turnaround = organization.revision_turnaround_days;
+
+  function WorkExtras({ item }) {
+    const files = item.deliverable_files ?? [];
+    return (
+      <>
+        {files.length ? (
+          <ul className="file-chip-list">
+            {files.map((file) => (
+              <li key={file.id}>
+                <a className="file-chip" href={`/files/deliverable/${file.id}`} rel="noreferrer" target="_blank">
+                  <Icon name="file" size={15} />
+                  <span>{file.file_name}</span>
+                  <span className="file-size">{formatFileSize(file.size_bytes)}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <CommentThread comments={item.deliverable_comments ?? []} deliverableId={item.id} />
+      </>
+    );
+  }
 
   return (
     <WorkspaceShell active="overview" profile={profile} title="Home">
@@ -128,6 +158,7 @@ export default async function ClientPortalPage() {
                     </div>
                     <p className="work-card-meta"><Icon name="clock" size={16} /> Due {formatDate(item.due_date)}</p>
                     {item.latestReview?.note ? <p className="review-detail">Your note: “{item.latestReview.note}”</p> : null}
+                    <WorkExtras item={item} />
                     <DeliverableReviewActions deliverableId={item.id} />
                   </li>
                 ))}
@@ -161,6 +192,7 @@ export default async function ClientPortalPage() {
                       {item.latestReview ? <Status>{item.latestReview.action}</Status> : null}
                     </div>
                   </div>
+                  <WorkExtras item={item} />
                 </li>
               ))}
             </ul>
@@ -192,7 +224,40 @@ export default async function ClientPortalPage() {
 
         <section aria-labelledby="billing-heading" className="portal-section" id="billing">
           <div className="section-heading">
-            <h2 id="billing-heading">Payments</h2>
+            <h2 id="billing-heading">Invoices</h2>
+            <span className="count-chip">{invoices.length}</span>
+          </div>
+          {invoices.length ? (
+            <ul className="card-list list-box">
+              {invoices.map((invoice) => {
+                const status = displayInvoiceStatus(invoice, today);
+                return (
+                  <li className="payment-row" key={invoice.id}>
+                    <div>
+                      <strong className="mono">{invoice.invoice_number}</strong>
+                      <span>
+                        {formatCurrency(invoiceTotal(invoice.invoice_items))} ·{" "}
+                        {invoice.status === "Paid"
+                          ? `Paid ${formatDate(invoice.paid_at?.slice(0, 10))}`
+                          : `Due ${formatDate(invoice.due_date)}`}
+                      </span>
+                    </div>
+                    <div className="invoice-row-end">
+                      <Status>{status}</Status>
+                      <a className="button button-secondary button-small" href={`/invoices/${invoice.id}`} rel="noreferrer" target="_blank">
+                        View
+                      </a>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div className="empty-card"><p>Invoices from {organization.agency_name} will appear here.</p></div>
+          )}
+
+          <div className="section-heading section-heading-spaced">
+            <h2>Payment history</h2>
             <span className="count-chip">{payments.length}</span>
           </div>
           {payments.length ? (

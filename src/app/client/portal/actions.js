@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth";
+import { buildNotification } from "@/lib/notificationRules.mjs";
+import { notifyStaff } from "@/lib/notificationsServer";
 import { createClient } from "@/lib/supabase/server";
 
 export async function reviewDeliverable(_previousState, formData) {
@@ -21,7 +23,7 @@ export async function reviewDeliverable(_previousState, formData) {
   const supabase = await createClient();
   const { data: deliverable, error: deliverableError } = await supabase
     .from("deliverables")
-    .select("id, pipeline_status, client_services!inner(client_id)")
+    .select("id, title, pipeline_status, client_services!inner(client_id, clients(company_name))")
     .eq("id", deliverableId)
     .eq("client_services.client_id", profile.client_id)
     .maybeSingle();
@@ -46,6 +48,15 @@ export async function reviewDeliverable(_previousState, formData) {
     return { error: `Could not submit your review: ${error.message}` };
   }
 
+  await notifyStaff(
+    buildNotification(decision === "Approved" ? "review_approved" : "review_changes_requested", {
+      deliverableTitle: deliverable.title,
+      clientName: deliverable.client_services.clients?.company_name ?? profile.full_name,
+      note,
+    }),
+  );
+
   revalidatePath("/client/portal");
+  revalidatePath("/admin/dashboard");
   return { success: true };
 }
