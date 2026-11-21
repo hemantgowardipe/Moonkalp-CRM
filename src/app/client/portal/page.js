@@ -1,6 +1,6 @@
 import SetupNotice from "@/components/SetupNotice";
 import DatabaseMigrationNotice from "@/components/DatabaseMigrationNotice";
-import WorkspaceShell from "@/components/WorkspaceShell";
+import WorkspaceShell, { preloadWorkspaceShell } from "@/components/WorkspaceShell";
 import CommentThread from "@/components/CommentThread";
 import DeliverableReviewActions from "@/components/DeliverableReviewActions";
 import Icon from "@/components/Icon";
@@ -37,6 +37,7 @@ function latestReview(item) {
 export default async function ClientPortalPage() {
   if (!isSupabaseConfigured()) return <SetupNotice />;
 
+  preloadWorkspaceShell();
   const profile = await requireRole(["client"]);
   const supabase = await createClient();
   const [{ data: client, error }, organization] = await Promise.all([

@@ -1,13 +1,26 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { isRecentEmailLinkSession } from "@/lib/portalAccess.mjs";
 import { createClient } from "@/lib/supabase/server";
 
-export async function getCurrentProfile() {
+/**
+ * The signed-in user, verified with the Supabase Auth server. React's cache()
+ * shares one round trip across everything rendered for a single request
+ * (requireRole, the workspace shell preload, the Security settings). It only
+ * memoizes during a server render, so Server Actions and Route Handlers still
+ * check the session on every call.
+ */
+export const getAuthUser = cache(async () => {
+  const supabase = await createClient();
+  return supabase.auth.getUser();
+});
+
+export const getCurrentProfile = cache(async () => {
   const supabase = await createClient();
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await getAuthUser();
 
   if (authError) {
     // A missing, expired, or revoked session (e.g. a stale refresh token cookie)
@@ -31,7 +44,7 @@ export async function getCurrentProfile() {
   }
 
   return profile;
-}
+});
 
 export async function hasRecentEmailLinkSession() {
   const supabase = await createClient();

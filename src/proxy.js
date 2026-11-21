@@ -35,12 +35,15 @@ export async function proxy(request) {
     },
   });
 
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  // getClaims() refreshes an expired session like getUser() does, but then
+  // verifies the JWT locally when the project uses asymmetric signing keys
+  // (the public keys are cached), so most navigations skip a round trip to the
+  // Auth server. With legacy symmetric keys it falls back to getUser(). This is
+  // only the fast gate: every page still calls getUser() through requireRole(),
+  // so a revoked session is rejected there.
+  const { data, error } = await supabase.auth.getClaims();
 
-  if (error || !user) {
+  if (error || !data?.claims) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", request.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);
