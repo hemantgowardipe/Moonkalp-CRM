@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import BrandLogo from "@/components/BrandLogo";
 import Icon from "@/components/Icon";
+import { LinkPendingIndicator } from "@/components/NavigationFeedback";
 import PrintButton from "@/components/PrintButton";
 import { requireRole } from "@/lib/auth";
 import { isUuid, todayIsoDate } from "@/lib/crmRecords.mjs";
@@ -53,6 +54,7 @@ export default async function InvoicePage({ params }) {
       <div className="invoice-toolbar print-hidden">
         <Link className="button button-secondary" href={backHref}>
           <Icon name="back" size={18} /> Back
+          <LinkPendingIndicator />
         </Link>
         <PrintButton />
       </div>

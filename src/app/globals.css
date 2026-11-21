@@ -47,6 +47,10 @@
   --shadow-md: 0 1px 2px rgb(10 10 12 / 5%), 0 4px 12px rgb(10 10 12 / 5%);
   --shadow-lg: 0 16px 40px rgb(10 10 12 / 16%), 0 2px 6px rgb(10 10 12 / 6%);
 
+  /* Loading placeholders: a resting tone and the shimmer that sweeps over it. */
+  --skeleton-base: #ececef;
+  --skeleton-highlight: #f7f7f8;
+
   --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
@@ -109,6 +113,9 @@
   --shadow-sm: 0 0 transparent;
   --shadow-md: 0 4px 16px rgb(0 0 0 / 45%);
   --shadow-lg: 0 20px 48px rgb(0 0 0 / 70%);
+
+  --skeleton-base: #1b1e26;
+  --skeleton-highlight: #272b35;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -147,6 +154,9 @@
     --shadow-sm: 0 0 transparent;
     --shadow-md: 0 4px 16px rgb(0 0 0 / 45%);
     --shadow-lg: 0 20px 48px rgb(0 0 0 / 70%);
+
+    --skeleton-base: #1b1e26;
+    --skeleton-highlight: #272b35;
   }
 }
 
@@ -972,6 +982,104 @@ a.notify-item:hover { background: var(--surface-hover); }
 .invoice-notes p { color: var(--text-muted); font-size: 13.5px; line-height: 1.6; white-space: pre-wrap; }
 .invoice-sheet-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; border-top: 1px solid var(--border-muted); padding-top: 16px; color: var(--text-subtle); font-size: 12.5px; }
 .section-heading-spaced { margin-top: 24px; }
+
+/* ==========================================================================
+   Loading and navigation feedback
+   Pages render on the server, so a click waits for a round trip. Feedback
+   starts the moment a link is clicked: the item turns current, a thin bar
+   runs along the top, and a skeleton of the destination replaces the stale
+   content until the real page arrives.
+   ========================================================================== */
+
+/* --- Top progress bar: NProgress (github.com/rstacruz/nprogress, MIT).
+       Adapted from nprogress.css to the design tokens; spinner disabled. --- */
+#nprogress { pointer-events: none; }
+#nprogress .bar {
+  position: fixed; top: 0; left: 0; z-index: 1031;
+  width: 100%; height: 2px; background: var(--brand-gradient);
+}
+/* The soft glow on the leading edge. */
+#nprogress .peg {
+  position: absolute; right: 0; display: block; width: 100px; height: 100%;
+  box-shadow: 0 0 10px var(--accent), 0 0 5px var(--accent);
+  opacity: 1; transform: rotate(3deg) translate(0, -4px);
+}
+
+/* --- Pending navigation --- */
+/* Marker inside each tracked link (data-pending while it loads), read with :has(). */
+.link-pending { display: none; }
+
+/* Region wrappers that swap content for a skeleton without adding layout. */
+.pending-placeholder, .pending-content { display: contents; }
+.pending-content[hidden] { display: none; }
+
+/* The clicked destination reads as current at once; the item it replaces steps back. */
+.nav-link:has(> .link-pending[data-pending]) { background: var(--surface-hover); color: var(--text); font-weight: 600; }
+.nav-link:has(> .link-pending[data-pending])::before {
+  position: absolute; top: 9px; bottom: 9px; left: -12px; width: 2px; background: var(--accent); content: "";
+}
+.sidebar-nav:has(.link-pending[data-pending]) .nav-link[aria-current="page"]:not(:has(> .link-pending[data-pending])) {
+  background: transparent; color: var(--text-muted); font-weight: 500;
+}
+.sidebar-nav:has(.link-pending[data-pending]) .nav-link[aria-current="page"]:not(:has(> .link-pending[data-pending]))::before { content: none; }
+
+.settings-nav-link:has(> .link-pending[data-pending]) { background: var(--surface-hover); color: var(--text); font-weight: 600; }
+.settings-nav-link:has(> .link-pending[data-pending])::before {
+  position: absolute; top: 8px; bottom: 8px; left: 0; width: 2px; background: var(--accent); content: "";
+}
+.settings-nav:has(.link-pending[data-pending]) .settings-nav-link[aria-current="page"]:not(:has(> .link-pending[data-pending])) {
+  background: transparent; color: var(--text-muted); font-weight: 500;
+}
+.settings-nav:has(.link-pending[data-pending]) .settings-nav-link[aria-current="page"]:not(:has(> .link-pending[data-pending]))::before { content: none; }
+
+.filter-chip:has(> .link-pending[data-pending]) { color: var(--text); }
+.filter-chip:has(> .link-pending[data-pending])::after {
+  position: absolute; right: 0; bottom: -1px; left: 0; height: 2px; background: var(--text); content: "";
+}
+.filter-chips:has(.link-pending[data-pending]) .filter-chip[aria-current="true"]:not(:has(> .link-pending[data-pending])) { color: var(--text-muted); }
+.filter-chips:has(.link-pending[data-pending]) .filter-chip[aria-current="true"]:not(:has(> .link-pending[data-pending]))::after { content: none; }
+
+.notify-panel[hidden] { display: none; }
+
+/* --- Skeletons: react-loading-skeleton (github.com/dvtng/react-loading-skeleton, MIT).
+       Its stylesheet is imported in the root layout; these tokens theme it, and
+       its prefers-reduced-motion rule still stops the shimmer. --- */
+:root .react-loading-skeleton {
+  --base-color: var(--skeleton-base);
+  --highlight-color: var(--skeleton-highlight);
+  --animation-duration: 1.4s;
+}
+.skeleton-screen { cursor: progress; }
+.skeleton-body { --skeleton-theme-option-h: 148px; pointer-events: none; }
+.skeleton-body-stack { display: grid; gap: 16px; }
+.skeleton-shape { display: block; line-height: 0; }
+.skeleton-grow { flex: 1; min-width: 0; }
+.skeleton-label { display: block; font-size: 13px; }
+.skeleton-legend { margin-bottom: 10px; font-size: 13px; font-weight: 500; }
+.skeleton-strong { display: block; font-weight: 600; }
+.skeleton-hint { display: block; font-size: 13px; }
+.skeleton-meta { font-size: 12px; }
+.skeleton-radio-row { display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-muted); padding: 14px 16px; }
+.skeleton-radio-row:last-child { border-bottom: 0; }
+.skeleton-radio-row > .skeleton-grow { display: grid; }
+.skeleton-panel-row { display: flex; align-items: center; gap: 16px; border-bottom: 1px solid var(--border-muted); padding: var(--row-pad-y) 16px; }
+.skeleton-panel-row:last-child { border-bottom: 0; }
+.skeleton-panel-cell { flex: 0 0 auto; width: 64px; }
+
+@media (max-width: 1023px) {
+  .bottom-nav-item:has(> .link-pending[data-pending]) { color: var(--text); }
+  .bottom-nav-item:has(> .link-pending[data-pending])::before {
+    position: absolute; top: -1px; left: 30%; right: 30%; height: 2px; background: var(--brand-gradient); content: "";
+  }
+  .bottom-nav:has(.link-pending[data-pending]) .bottom-nav-item[aria-current="page"]:not(:has(> .link-pending[data-pending])) { color: var(--text-subtle); }
+  .bottom-nav:has(.link-pending[data-pending]) .bottom-nav-item[aria-current="page"]:not(:has(> .link-pending[data-pending]))::before { content: none; }
+}
+
+@media (max-width: 767px) {
+  .settings-nav-link:has(> .link-pending[data-pending]) { background: transparent; }
+  .settings-nav-link:has(> .link-pending[data-pending])::before { top: auto; right: 0; bottom: -1px; left: 0; width: auto; height: 2px; background: var(--text); }
+  .skeleton-body { --skeleton-theme-option-h: 82px; }
+}
 
 @media (max-width: 640px) {
   .invoice-item-row { grid-template-columns: minmax(0, 1fr) auto; }

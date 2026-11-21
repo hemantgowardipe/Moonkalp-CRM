@@ -46,7 +46,7 @@
 - Supabase SSR browser and server clients are configured in `src/lib/supabase/`.
 - `/login` supports email/password sign-in.
 - `src/lib/auth.js` loads the logged-in user’s app profile from `public.users` and exposes role enforcement.
-- Root `proxy.js` refreshes auth cookies and blocks unauthenticated access to admin and client routes.
+- `src/proxy.js` refreshes auth cookies and blocks unauthenticated access to admin and client routes. It must live in `src/` (next to `app/`): at the project root Next.js silently ignores it, which left sessions unrefreshed until it was moved.
 - Authenticated user profiles determine redirects: client users go to their portal; agency users go to the admin workspace.
 - Admin/team roles are intended to be provisioned administratively, not through an open public registration form.
 
@@ -230,12 +230,12 @@ src/
     clientInvite.mjs    Invite callback URL validation
     formatCurrency.mjs  Currency formatting
     supabase/           Browser, server, config, and admin clients
+  proxy.js              Auth cookie refresh and route access guard (must stay in src/)
 supabase/
   diagnostics/          Client-save/RLS diagnostic SQL
   migrations/           Initial schema, reviews, historical signup, portal invites
 tests/
   formatCurrency.test.mjs Dashboard metric and invite helper tests
-proxy.js                Auth cookie refresh and route access guard
 README.md               Setup and current feature guide
 HANDOVER.md             This document
 ```

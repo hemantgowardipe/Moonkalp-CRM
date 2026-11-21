@@ -1,12 +1,17 @@
+import { cache } from "react";
 import Link from "next/link";
 import BrandLogo from "@/components/BrandLogo";
 import Icon from "@/components/Icon";
+import { DashboardSkeleton, PortalSkeleton, SettingsPageSkeleton } from "@/components/LoadingSkeletons";
+import { LinkPendingIndicator, PendingRegion } from "@/components/NavigationFeedback";
 import NotificationsBell from "@/components/NotificationsBell";
 import SignOutButton from "@/components/SignOutButton";
+import { getAuthUser } from "@/lib/auth";
 import { getCurrentOrganizationSettings } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
 
-async function getNotifications(authId) {
+// One inbox read per request, shared by the sidebar and app-bar bells.
+const getNotifications = cache(async (authId) => {
   const supabase = await createClient();
   const [{ data: notifications, error }, { count, error: countError }] = await Promise.all([
     supabase
@@ -28,20 +33,34 @@ async function getNotifications(authId) {
     return { notifications: [], unreadCount: 0 };
   }
   return { notifications: notifications ?? [], unreadCount: count ?? 0 };
+});
+
+/**
+ * Starts the shell's own queries (agency settings and the notification inbox)
+ * at the top of a page, so they run alongside requireRole() and the page's
+ * data instead of after them. Call it before awaiting requireRole().
+ */
+export function preloadWorkspaceShell() {
+  getCurrentOrganizationSettings().catch(() => {});
+  getAuthUser()
+    .then(({ data }) => (data?.user ? getNotifications(data.user.id) : null))
+    .catch(() => {});
 }
 
+// `page` names the destination for loading feedback: its skeleton is shown in
+// <main> while the navigation is pending.
 const STAFF_NAV = [
-  { key: "overview", label: "Overview", href: "/admin/dashboard", icon: "home" },
-  { key: "clients", label: "Clients", href: "/admin/dashboard#clients", icon: "users" },
-  { key: "pipeline", label: "Pipeline", href: "/admin/dashboard#deliverables", icon: "layers" },
-  { key: "settings", label: "Settings", href: "/settings", icon: "settings" },
+  { key: "overview", label: "Overview", href: "/admin/dashboard", icon: "home", page: "overview" },
+  { key: "clients", label: "Clients", href: "/admin/dashboard#clients", icon: "users", page: "overview" },
+  { key: "pipeline", label: "Pipeline", href: "/admin/dashboard#deliverables", icon: "layers", page: "overview" },
+  { key: "settings", label: "Settings", href: "/settings", icon: "settings", page: "settings" },
 ];
 
 const CLIENT_NAV = [
-  { key: "overview", label: "Home", href: "/client/portal", icon: "home" },
-  { key: "reviews", label: "Reviews", href: "/client/portal#deliverables", icon: "inbox" },
-  { key: "billing", label: "Billing", href: "/client/portal#billing", icon: "card" },
-  { key: "settings", label: "Settings", href: "/settings", icon: "settings" },
+  { key: "overview", label: "Home", href: "/client/portal", icon: "home", page: "overview" },
+  { key: "reviews", label: "Reviews", href: "/client/portal#deliverables", icon: "inbox", page: "overview" },
+  { key: "billing", label: "Billing", href: "/client/portal#billing", icon: "card", page: "overview" },
+  { key: "settings", label: "Settings", href: "/settings", icon: "settings", page: "settings" },
 ];
 
 function initials(name) {
@@ -62,6 +81,10 @@ export default async function WorkspaceShell({ children, active = "overview", pr
     getNotifications(profile.auth_id),
   ]);
   const roleLabel = { admin: "Admin", team_member: "Team member", client: "Client" }[profile.role];
+  const pageSkeletons = {
+    overview: clientMode ? <PortalSkeleton /> : <DashboardSkeleton />,
+    settings: <SettingsPageSkeleton role={profile.role} />,
+  };
 
   return (
     <div className="app">
@@ -71,6 +94,7 @@ export default async function WorkspaceShell({ children, active = "overview", pr
         <Link aria-label={`${organization.agency_name} home`} className="brand" href={home}>
           <BrandLogo height={40} priority />
           <span className="brand-caption">{clientMode ? "Client portal" : "Workspace"}</span>
+          <LinkPendingIndicator scope="workspace" target="overview" />
         </Link>
         <nav aria-label="Main navigation" className="sidebar-nav">
           {nav.map((item) => (
@@ -82,6 +106,7 @@ export default async function WorkspaceShell({ children, active = "overview", pr
             >
               <Icon name={item.icon} />
               <span>{item.label}</span>
+              <LinkPendingIndicator scope="workspace" target={item.page} />
             </Link>
           ))}
         </nav>
@@ -93,6 +118,7 @@ export default async function WorkspaceShell({ children, active = "overview", pr
               <strong>{profile.full_name}</strong>
               <span>{roleLabel}</span>
             </span>
+            <LinkPendingIndicator scope="workspace" target="settings" />
           </Link>
           <SignOutButton />
         </div>
@@ -101,15 +127,21 @@ export default async function WorkspaceShell({ children, active = "overview", pr
       <header className="appbar">
         <Link aria-label={`${organization.agency_name} home`} className="brand brand-compact" href={home}>
           <BrandLogo height={30} />
+          <LinkPendingIndicator scope="workspace" target="overview" />
         </Link>
         <span className="appbar-title">{title ?? organization.agency_name}</span>
         <NotificationsBell notifications={inbox.notifications} placement="appbar" unreadCount={inbox.unreadCount} />
         <Link aria-label="Account settings" className="avatar avatar-button" href="/settings">
           {initials(profile.full_name)}
+          <LinkPendingIndicator scope="workspace" target="settings" />
         </Link>
       </header>
 
-      <main className="app-main" id="main">{children}</main>
+      <main className="app-main" id="main">
+        <PendingRegion current={active} fallbacks={pageSkeletons} scope="workspace">
+          {children}
+        </PendingRegion>
+      </main>
 
       <nav aria-label="Main navigation" className="bottom-nav">
         {nav.map((item) => (
@@ -121,6 +153,7 @@ export default async function WorkspaceShell({ children, active = "overview", pr
           >
             <span className="bottom-nav-icon"><Icon name={item.icon} size={22} /></span>
             <span>{item.label}</span>
+            <LinkPendingIndicator scope="workspace" target={item.page} />
           </Link>
         ))}
       </nav>

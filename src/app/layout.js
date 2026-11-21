@@ -1,5 +1,8 @@
 import { Geist, Geist_Mono } from "next/font/google";
+// Before globals.css, which themes the skeletons with the design tokens.
+import "react-loading-skeleton/dist/skeleton.css";
 import "./globals.css";
+import { NavigationProgressBar } from "@/components/NavigationFeedback";
 import { readAppearanceCookies } from "@/lib/settings";
 
 const geistSans = Geist({ subsets: ["latin"], display: "swap", variable: "--font-geist-sans" });
@@ -31,7 +34,10 @@ export default async function RootLayout({ children }) {
       data-theme={theme === "system" ? undefined : theme}
       lang="en"
     >
-      <body>{children}</body>
+      <body>
+        <NavigationProgressBar />
+        {children}
+      </body>
     </html>
   );
 }
